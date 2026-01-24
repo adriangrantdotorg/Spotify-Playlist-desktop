@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spotify Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Current Track Header -->
+      <header class="current-track">
+        <div class="track-info">
+          
+          <h1 class="track-title" id="track-title">Loading...</h1>
+          <h2 class="artist-name" id="artist-name">Loading...</h2>
+        </div>
+        <div class="visualizer">
+          <!-- Simple CSS animated bars for visual flair -->
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+        </div>
+      </header>
+
+      <!-- Playlist Grid -->
+      <main class="playlist-section">
+        <div class="grid-header">
+    
+        </div>
+        <div class="playlist-grid" id="playlist-grid">
+          <!-- Playlist Items will be injected here by JS -->
+        </div>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
