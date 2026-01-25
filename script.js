@@ -1,116 +1,149 @@
-// Mock Data
-const currentTrack = {
-  title: "STAR WALKIN' (League of Legends Worlds Anthem)",
-  artist: "Lil Nas X",
-};
+// State
+let currentTrack = null;
+let allPlaylists = [];
+let activePlaylistsMap = new Set(); // Set of Playlist IDs that contain the current track
 
-// Playlists extracted from "Playlists to Display.csv"
-// Added "isActive" property to mock the state
-const playlistsData = [
-  { name: "Adults NSFW", isActive: false },
-  { name: "Album Cuts", isActive: false },
-  { name: "Beats 🥁", isActive: false },
-  { name: "Best Hip Hop 🏆 Best", isActive: true }, // Mocked active
-  { name: "Best Hip Hop 🏆 Faves", isActive: false },
-  { name: "Best Hip Hop 🏆 Faves & Best", isActive: false },
-  { name: "Best Pack Hour 🏆", isActive: false },
-  { name: "Best Pop 🏆 Faves", isActive: true }, // Mocked active
-  { name: "Best R&B 🏆 Best", isActive: false },
-  { name: "Best R&B 🏆 Faves", isActive: false },
-  { name: "Best R&B 🏆 Faves & Best", isActive: false },
-  { name: "Big Tune", isActive: false },
-  { name: "BZZZ___R&B", isActive: false },
-  { name: "Chickens 🐔", isActive: false },
-  { name: "CLUB #OBFH/ Metaverse", isActive: false },
-  { name: "CLUB #OBFH/_", isActive: false },
-  { name: "CLUB #OBFH/Slow", isActive: false },
-  { name: "CLUB #OBFH/Trappin", isActive: false },
-  { name: "Club #OBFH/Trappin/Slow", isActive: false },
-  { name: "Disappointing", isActive: false },
-  { name: "DX/Pack Hour", isActive: false },
-  { name: "DX/Pack Hour/Slow", isActive: false },
-  { name: "DX/TikTok in da Metaverse/_", isActive: true }, // Mocked active
-  { name: "DX/TikTok in da Metaverse/Slow", isActive: false },
-  { name: "DX/Trappin", isActive: false },
-  { name: "Features", isActive: false },
-  { name: "Female", isActive: false },
-  { name: "Granola Backpack", isActive: false },
-  { name: "Interludes", isActive: false },
-  { name: "Jersey", isActive: false },
-  { name: "Late Night Ride/UK Drill", isActive: false },
-  { name: "Late Night/_", isActive: false },
-  { name: "Late Night/420 Ridazzz", isActive: false },
-  { name: "Late Night/ALL", isActive: false },
-  { name: "Late Night/Granola Backpack", isActive: false },
-  { name: "Late Night/Los Angeles (LA)", isActive: false },
-  { name: "Late Night/Metaverse/_", isActive: false },
-  { name: "Late Night/Pack Hour", isActive: false },
-  { name: "Late Night/R&B", isActive: false },
-  { name: "Late Night/Sexy Drill", isActive: false },
-  { name: "Late Night/South", isActive: false },
-  { name: "Late Night/Texas 🌵", isActive: false },
-  { name: "Late Night/Trappin", isActive: false },
-  { name: "Midwest", isActive: false },
-  { name: "NAGA NEXT SHOW", isActive: false },
-  { name: "NAGA NEXT SHOW - PACK", isActive: false },
-  { name: "New Finds", isActive: false },
-  { name: "NYC", isActive: false },
-  { name: "Processed", isActive: false },
-  { name: "Punchlines 🥊", isActive: false },
-  { name: "Rains in da Metaverse", isActive: false },
-  { name: "Reggae 🇯🇲", isActive: false },
-  { name: "Remix - TO REMIX", isActive: false },
-  { name: "Sample Flips", isActive: false },
-  { name: "Sexy Drill", isActive: false },
-  { name: "Snap ViRaL", isActive: false },
-  { name: "SPILL", isActive: false },
-  { name: "Thug Luv", isActive: false },
-  { name: "Trappin/Metaverse/Slow", isActive: false },
-  { name: "UK Drill", isActive: false },
-  { name: "Ultra Combo", isActive: false },
-  { name: "ViRaL 🦠", isActive: false },
-  { name: "ViRaL 🦠 Trappin", isActive: false },
-];
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Set Current Track Info
-  document.getElementById("track-title").textContent = currentTrack.title;
-  document.getElementById("artist-name").textContent = currentTrack.artist;
-
-  renderPlaylists();
+document.addEventListener('DOMContentLoaded', () => {
+    init();
 });
+
+async function init() {
+    // 1. Fetch initial Playlists (Static info)
+    await fetchPlaylists();
+    
+    // 2. Start Polling for Current Track
+    pollCurrentTrack();
+    setInterval(pollCurrentTrack, 10000); // Poll every 10 seconds
+}
+
+async function fetchPlaylists() {
+    try {
+        const res = await fetch('/api/playlists');
+        if (!res.ok) throw new Error(`Failed to fetch playlists: ${res.status}`);
+        
+        allPlaylists = await res.json();
+        
+        if (allPlaylists.length === 0) {
+            console.warn("Warning: Received 0 playlists");
+            document.getElementById('playlist-grid').innerHTML = '<div style="color:white; padding:20px;">No playlists found. Check backend logs.</div>';
+        } else {
+            // Render immediately (all inactive initially) for speed
+            renderPlaylists();
+        }
+    } catch (e) {
+        console.error("Error in fetchPlaylists:", e);
+        document.getElementById('artist-name').textContent = "Error loading playlists: " + e.message;
+    }
+}
+
+
+async function pollCurrentTrack() {
+    try {
+        const res = await fetch('/api/current-track');
+        if (res.status === 200) {
+            const track = await res.json();
+            if (track) {
+                const idChanged = !currentTrack || currentTrack.id !== track.id;
+                const statusChanged = !currentTrack || currentTrack.is_playing !== track.is_playing;
+
+                if (idChanged || statusChanged) {
+                    currentTrack = track;
+                    updateTrackInfo(track);
+                    if (idChanged) {
+                        // Optimistically render to ensure headers/visuals are right, 
+                        // checks will come later
+                        renderPlaylists();
+                        await checkPlaylists(track.uri);
+                    }
+                }
+            } else {
+                updateTrackInfo(null);
+            }
+        }
+    } catch (e) {
+        console.error("Polling error:", e);
+    }
+}
+
+async function checkPlaylists(trackUri) {
+    try {
+        const res = await fetch(`/api/check-playlists?track_uri=${encodeURIComponent(trackUri)}`);
+        if (res.ok) {
+            const activeIds = await res.json();
+            activePlaylistsMap = new Set(activeIds);
+            renderPlaylists();
+        }
+    } catch (e) {
+        console.error("Error checking playlists:", e);
+    }
+}
+
+function updateTrackInfo(track) {
+    const title = document.getElementById('track-title');
+    const artist = document.getElementById('artist-name');
+    const visualizerBars = document.querySelectorAll('.bar');
+    const nothingPlayingMsg = document.getElementById('nothing-playing');
+    
+    if (track) {
+        title.textContent = track.name;
+        artist.textContent = track.artist;
+        
+        if (track.is_playing) {
+            visualizerBars.forEach(b => b.style.display = 'block');
+            nothingPlayingMsg.style.display = 'none';
+        } else {
+            visualizerBars.forEach(b => b.style.display = 'none');
+            nothingPlayingMsg.style.display = 'block';
+        }
+    } else {
+        title.textContent = "Not Playing";
+        artist.textContent = "Play a song on Spotify";
+        visualizerBars.forEach(b => b.style.display = 'none');
+        nothingPlayingMsg.style.display = 'block';
+        activePlaylistsMap.clear();
+        renderPlaylists();
+    }
+}
 
 function renderPlaylists() {
     const grid = document.getElementById('playlist-grid');
     grid.innerHTML = '';
 
+    // Map state to playlists
+    const playlistsWithState = allPlaylists.map(p => ({
+        ...p,
+        isActive: activePlaylistsMap.has(p.id)
+    }));
+
     // Split into active and inactive
-    const activePlaylists = playlistsData.filter(p => p.isActive).sort((a, b) => a.name.localeCompare(b.name));
-    const inactivePlaylists = playlistsData.filter(p => !p.isActive).sort((a, b) => a.name.localeCompare(b.name));
+    const activePlaylists = playlistsWithState.filter(p => p.isActive).sort((a, b) => a.name.localeCompare(b.name));
+    const inactivePlaylists = playlistsWithState.filter(p => !p.isActive).sort((a, b) => a.name.localeCompare(b.name));
 
     // Helper to create item
     const createItem = (playlist) => {
         const item = document.createElement('div');
         item.className = `playlist-item ${playlist.isActive ? 'active' : ''}`;
         
-        // Simple click to toggle for demo purposes
-        item.onclick = () => togglePlaylist(playlist.name);
+        // Use ID for toggling
+        item.onclick = () => togglePlaylist(playlist);
 
         const nameSpan = document.createElement('span');
         nameSpan.className = 'playlist-name';
         nameSpan.textContent = playlist.name;
 
+        item.appendChild(nameSpan);
+
+        // Status Indicator (Checkmark)
         const indicator = document.createElement('div');
         indicator.className = 'status-indicator';
-        // Tick icon SVG
-        indicator.innerHTML = `<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
-
-        item.appendChild(nameSpan);
+        indicator.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
         item.appendChild(indicator);
+
         return item;
     };
 
-    // Render Active Group
+    // Render Active Group (Column Layout)
     if (activePlaylists.length > 0) {
         const activeGroup = document.createElement('div');
         activeGroup.className = 'active-group';
@@ -118,7 +151,7 @@ function renderPlaylists() {
         grid.appendChild(activeGroup);
     }
 
-    // Render Divider if needed
+    // Divider
     if (activePlaylists.length > 0 && inactivePlaylists.length > 0) {
         const divider = document.createElement('div');
         divider.className = 'playlist-divider';
@@ -134,10 +167,54 @@ function renderPlaylists() {
     }
 }
 
-function togglePlaylist(name) {
-  const playlist = playlistsData.find((p) => p.name === name);
-  if (playlist) {
-    playlist.isActive = !playlist.isActive;
+async function togglePlaylist(playlist) {
+    if (!currentTrack) return;
+
+    const isCurrentlyActive = activePlaylistsMap.has(playlist.id);
+    const action = isCurrentlyActive ? 'remove' : 'add';
+
+    // Optimistic Update
+    if (action === 'add') {
+        activePlaylistsMap.add(playlist.id);
+    } else {
+        activePlaylistsMap.delete(playlist.id);
+    }
+
+    // Copy Spotify Playlist Name to Clipboard (on Add OR Remove)
+    if (playlist.spotify_name) {
+        navigator.clipboard.writeText(playlist.spotify_name).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    }
     renderPlaylists();
-  }
+
+    try {
+        const res = await fetch('/api/playlist/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                playlist_id: playlist.id,
+                track_uri: currentTrack.uri,
+                action: action
+            })
+        });
+        
+        const data = await res.json();
+        if (!data.success) {
+            console.error("Failed to toggle:", data.error);
+            // Revert on failure
+            if (action === 'add') activePlaylistsMap.delete(playlist.id);
+            else activePlaylistsMap.add(playlist.id);
+            renderPlaylists();
+            alert("Failed to update playlist: " + data.error);
+        }
+    } catch (e) {
+        console.error("Error toggling:", e);
+        // Revert on failure
+        if (action === 'add') activePlaylistsMap.delete(playlist.id);
+        else activePlaylistsMap.add(playlist.id);
+        renderPlaylists();
+        alert("Network error.");
+    }
 }
+

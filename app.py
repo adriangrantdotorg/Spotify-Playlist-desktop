@@ -1,0 +1,343 @@
+import os
+import csv
+import time
+import threading
+import csv
+import time
+import threading
+from flask import Flask, jsonify, request, send_from_directory, redirect, session
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+from dotenv import load_dotenv
+
+load_dotenv()
+
+app = Flask(__name__, static_folder='.')
+
+# Configuration
+CSV_FILE = "Playlists to Display.csv"
+SCOPE = "user-read-playback-state user-library-read user-library-modify playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private user-read-recently-played"
+
+# Spotify Auth Manager
+# We create a function or object to manage auth
+def get_auth_manager():
+    return SpotifyOAuth(scope=SCOPE, open_browser=False)
+
+sp = spotipy.Spotify(auth_manager=get_auth_manager())
+
+# Global Cache for Playlist IDs
+# Map: "Spotify Playlist Name" -> Playlist ID
+playlist_map = {}
+# List of dicts for frontend: { "name": "Dashboard Name", "spotify_name": "Spotify Playlist Name", "id": "..." }
+dashboard_playlists = []
+# Cache for Playlist Tracks: Playlist ID -> Set of Track URIs
+playlist_tracks_cache = {}
+
+def populate_playlist_cache():
+    global playlist_tracks_cache
+    print("Starting background cache population...")
+    
+    count = 0
+    for pl in dashboard_playlists:
+        pid = pl['id']
+        sname = pl['spotify_name']
+        
+        try:
+            track_uris = set()
+            results = sp.playlist_items(pid, additional_types=['track'], fields='next,items(track(uri))')
+            
+            def add_items(items):
+                for item in items:
+                    if item.get('track') and item['track'].get('uri'):
+                        track_uris.add(item['track']['uri'])
+            
+            add_items(results['items'])
+            while results['next']:
+                results = sp.next(results)
+                add_items(results['items'])
+            
+            playlist_tracks_cache[pid] = track_uris
+            count += 1
+            
+        except Exception as e:
+            print(f"Error caching playlist {sname}: {e}")
+            
+    print(f"Cache population complete. Cached {count}/{len(dashboard_playlists)} playlists.")
+
+def load_playlists():
+    global playlist_map, dashboard_playlists
+    playlist_map = {}
+    dashboard_playlists = []
+    
+    # 1. Read CSV to get Dashboard Name -> Spotify Playlist Name mapping
+    csv_mapping = []
+    try:
+        with open(CSV_FILE, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                d_name = row.get("Dashboard Name", "").strip()
+                s_name = row.get("Spotify Playlist Name", "").strip()
+                if d_name and s_name:
+                    csv_mapping.append({"d_name": d_name, "s_name": s_name})
+    except Exception as e:
+        print(f"Error reading CSV: {e}")
+        return
+
+    # 2. Fetch User's Playlists from Spotify to find IDs
+    # Spotify returns paginated results, need to fetch all
+    print("Fetching user playlists from Spotify...")
+    spotify_playlists = []
+    try:
+        results = sp.current_user_playlists(limit=50)
+        spotify_playlists.extend(results['items'])
+        while results['next']:
+            results = sp.next(results)
+            spotify_playlists.extend(results['items'])
+    except Exception as e:
+        print(f"Error fetching playlists: {e}")
+        return
+
+    # Map Name -> ID (Case insensitive for robustness? adhering to exact name for now based on prompt)
+    # Using a dict for quick lookup: Name -> ID
+    # Note: Duplicate names in Spotify are possible, this will pick the last one found.
+    sp_name_to_id = {p['name']: p['id'] for p in spotify_playlists}
+
+    # 3. Match CSV entries to Spotify IDs
+    # 3. Match CSV entries to Spotify IDs (and dedup)
+    seen_names = set()
+    for item in csv_mapping:
+        d_name = item['d_name']
+        s_name = item['s_name']
+        
+        # Avoid duplicates
+        if d_name in seen_names:
+            continue
+            
+        if s_name in sp_name_to_id:
+            pid = sp_name_to_id[s_name]
+            playlist_map[s_name] = pid
+            dashboard_playlists.append({
+                "name": d_name,
+                "spotify_name": s_name,
+                "id": pid
+            })
+            seen_names.add(d_name)
+        else:
+            print(f"Warning: Playlist '{s_name}' not found in your Spotify library.")
+
+    print(f"Loaded {len(dashboard_playlists)} matched playlists.")
+
+    # Start background cache population
+    threading.Thread(target=populate_playlist_cache, daemon=True).start()
+
+    print(f"Loaded {len(dashboard_playlists)} matched playlists.")
+
+    # Start background cache population
+    threading.Thread(target=populate_playlist_cache, daemon=True).start()
+
+# Helper to load playlists only if authorized
+def safe_load_playlists():
+    try:
+        auth_manager = get_auth_manager()
+        token = auth_manager.get_cached_token()
+        if token:
+            print("Token found. Loading playlists...")
+            load_playlists()
+        else:
+            print("No valid token found. Skipping initial playlist load.")
+    except Exception as e:
+        print(f"Error checking token/loading playlists: {e}")
+
+# Initial Load Attempt
+safe_load_playlists()
+
+@app.route('/')
+def serve_index():
+    # Check auth
+    auth_manager = get_auth_manager()
+    if not auth_manager.validate_token(auth_manager.get_cached_token()):
+        return redirect('/login')
+        
+    # If playlists are empty (first login), try loading them
+    if not dashboard_playlists:
+        # Avoid blocking main thread? For MVP, just load it.
+        # Or trigger background?
+        # Let's simple load.
+        load_playlists()
+        
+    return send_from_directory('.', 'index.html')
+
+@app.route('/login')
+def login():
+    auth_manager = get_auth_manager()
+    auth_url = auth_manager.get_authorize_url()
+    return redirect(auth_url)
+
+@app.route('/callback')
+def callback():
+    auth_manager = get_auth_manager()
+    code = request.args.get('code')
+    if code:
+        auth_manager.get_access_token(code)
+    return redirect('/')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    return send_from_directory('.', path)
+
+@app.route('/api/current-track')
+def get_current_track():
+    try:
+        # Check token validity?
+        # spotipy handles refresh, but if no token at all?
+        # Just let it fail and return error?
+        
+        current = sp.current_user_playing_track()
+        if current and current['item']:
+            track = current['item']
+            is_playing = current['is_playing']
+        else:
+            # Fallback to recently played
+            recent = sp.current_user_recently_played(limit=1)
+            if recent and recent['items']:
+                track = recent['items'][0]['track']
+                is_playing = False
+            else:
+                return jsonify(None)
+        
+        # Check if liked
+        # current_user_saved_tracks_contains returns list of bools
+        is_liked = sp.current_user_saved_tracks_contains([track['id']])[0]
+        
+        return jsonify({
+            "id": track['id'],
+            "name": track['name'],
+            "artist": ", ".join([artist['name'] for artist in track['artists']]),
+            "is_liked": is_liked,
+            "is_playing": is_playing,
+            "uri": track['uri']
+        })
+    except Exception as e:
+        print(f"Error getting current track: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/playlists')
+def get_playlists():
+    # Return playlists with "isActive" status for the given track_id
+    track_id = request.args.get('track_id')
+    if not track_id:
+        return jsonify(dashboard_playlists) # Return without active status
+
+    # Start with all false
+    response_list = []
+    
+    # Needs to check which playlists contain this track.
+    # Checking 50+ playlists individually is slow (API limits).
+    # OPTIMIZATION: 
+    # Option A: Check "contains" for each playlist. Slow.
+    # Option B: Cache playlist contents? Playlists change.
+    # Option C: Use playlist-read (get tracks) is also slow.
+    
+    # Revised Approach for Responsiveness:
+    # We will check active status on demand or asynchronously. 
+    # However, user wants to see it immediately.
+    # Let's try checking per playlist for now, limiting concurrency or just doing it contentiously.
+    # actually `playlist_contains` isn't a direct endpoint. We have to fetch tracks.
+    
+    # Wait, there is no simple "does playlist X contain track Y" API without fetching tracks.
+    # Except `sp.playlist_contains`? No.
+    
+    # Optimization: On the frontend, we might just load the list and then Lazy-load the "checked" status?
+    # Or we do it here. For < 100 playlists, iterating `playlist_tracks` might take time.
+    # BUT, recently played / context? 
+    # Let's try to fetch all tracks for our managed playlists... NO that's too heavy.
+    
+    # Let's stick to the prompt requirement: "If the current track is saved in a playlist, it will have a checkmark"
+    # Maybe we can parallelize or batch? Not easily in Flask sync.
+    
+    # We will rely on caching or just fetch.
+    # Let's assume for now we just return the static list and let the frontend ask for status? 
+    # Or, we just check them all. It might take a few seconds.
+    
+    # Actually, simpler way:
+    # There isn't one. We have to check.
+    # Let's check a subset or just accept the delay?
+    # Delay is bad for UI.
+    
+    # Compromise: Return list immediately. Frontend can poll for "active playlists" for a track.
+    
+    # For now, let's just return the list.
+    # I'll create a separate endpoint `/api/check-playlists?track_id=...` that returns list of ID's that contain the track.
+    
+    return jsonify(dashboard_playlists)
+
+@app.route('/api/check-playlists')
+def check_playlists():
+    track_uri = request.args.get('track_uri') # Using URI or ID
+    if not track_uri:
+        return jsonify([])
+        
+    # Standardize to URI
+    if not track_uri.startswith('spotify:track:'):
+        track_uri = f'spotify:track:{track_uri}'
+
+    active_ids = []
+    
+    # Check cache
+    for pl in dashboard_playlists:
+        pid = pl['id']
+        # If cache exists for this playlist, use it
+        if pid in playlist_tracks_cache:
+            if track_uri in playlist_tracks_cache[pid]:
+                active_ids.append(pid)
+    
+    return jsonify(active_ids)
+
+
+@app.route('/api/playlist/toggle', methods=['POST'])
+def toggle_playlist():
+    data = request.json
+    playlist_id = data.get('playlist_id')
+    track_uri = data.get('track_uri')
+    action = data.get('action') # 'add' or 'remove'
+    
+    if not all([playlist_id, track_uri, action]):
+        return jsonify({"error": "Missing data"}), 400
+
+    try:
+        if action == 'add':
+            # 1. Add to Playlist
+            sp.playlist_add_items(playlist_id, [track_uri])
+            
+            # Update Cache
+            if playlist_id in playlist_tracks_cache:
+                playlist_tracks_cache[playlist_id].add(track_uri)
+                
+            # 2. Like the Song (Save to Library)
+            track_id = track_uri.replace('spotify:track:', '')
+            sp.current_user_saved_tracks_add([track_id])
+            message = "Added to playlist and Liked Songs."
+        
+        elif action == 'remove':
+            # 1. Remove from Playlist
+            sp.playlist_remove_all_occurrences_of_items(playlist_id, [track_uri])
+            
+            # Update Cache
+            if playlist_id in playlist_tracks_cache:
+                if track_uri in playlist_tracks_cache[playlist_id]:
+                    playlist_tracks_cache[playlist_id].remove(track_uri)
+                    
+            # 2. DO NOT Remove from Liked Songs (per requirements)
+            message = "Removed from playlist."
+            
+        else:
+            return jsonify({"error": "Invalid action"}), 400
+
+        return jsonify({"success": True, "message": message})
+
+    except Exception as e:
+        print(f"Error toggling playlist: {e}")
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(port=8888, debug=True)
