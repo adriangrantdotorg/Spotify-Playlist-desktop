@@ -66,173 +66,99 @@ body {
   position: relative;
 }
 
-/* Header */
+/* Header: Ultra Compact */
 .current-track {
-  padding: 24px 32px;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.4) 0%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 12px 24px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+  height: 70px; /* Fixed small height */
 }
 
 .track-info {
   flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .now-playing-label {
-  font-family: var(--font-heading);
-  font-size: 0.7rem;
-  letter-spacing: 2px;
-  color: var(--neon-cyan);
-  margin-bottom: 8px;
-  text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+  display: none; /* Hide label to save space, context is clear */
 }
 
 .track-title {
   font-family: var(--font-heading);
-  font-size: 1.3rem;
+  font-size: 1.1rem; /* Smaller font */
   font-weight: 700;
-  margin-bottom: 4px;
+  margin-bottom: 0;
   text-transform: uppercase;
   letter-spacing: 1px;
   text-shadow: var(--glow-text);
-  white-space: normal;
-  word-wrap: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 600px;
 }
 
 .artist-name {
-  font-size: 1.2rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-/* Visualizer */
-.visualizer {
-  display: flex;
-  gap: 4px;
-  align-items: flex-end;
-  height: 30px;
-}
-
-.bar {
-  width: 6px;
-  background-color: var(--neon-green);
-  animation: bounce 1s infinite ease-in-out;
-  border-radius: 2px;
-  box-shadow: var(--glow-green);
-}
-
-.bar:nth-child(1) {
-  height: 10px;
-  animation-duration: 0.8s;
-}
-.bar:nth-child(2) {
-  height: 20px;
-  animation-duration: 1.2s;
-}
-.bar:nth-child(3) {
-  height: 15px;
-  animation-duration: 1s;
-}
-.bar:nth-child(4) {
-  height: 25px;
-  animation-duration: 0.9s;
-}
-
-@keyframes bounce {
-  0%,
-  100% {
-    transform: scaleY(1);
-  }
-  50% {
-    transform: scaleY(0.5);
-  }
-}
-
-.nothing-playing {
-    font-family: var(--font-heading);
-    font-size: 0.8rem;
-    color: var(--neon-blue);
-    letter-spacing: 1px;
-    text-shadow: 0 0 5px var(--neon-blue);
-    white-space: nowrap;
-    align-self: center;
-}
-
-/* Playlist Section */
-.playlist-section {
-  flex-grow: 1;
-  padding: 20px 32px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.grid-header {
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.grid-header h3 {
-  font-family: var(--font-heading);
   font-size: 0.9rem;
   color: var(--text-secondary);
-  letter-spacing: 1px;
-  white-space: nowrap;
+  font-weight: 500;
+  margin-top: 2px;
 }
 
-.pulse-line {
-  height: 1px;
-  background: linear-gradient(90deg, var(--neon-blue), transparent);
-  width: 100%;
-  opacity: 0.5;
-  box-shadow: 0 0 10px var(--neon-blue);
+/* Playlist Section: High Density Grid */
+.playlist-section {
+  flex-grow: 1;
+  padding: 16px;
+  overflow-y: auto;
+  /* Custom scrollbar overlay? Native is fine for now */
 }
+
+.grid-header { display: none; } /* Hide old headers */
+.pulse-line { display: none; }
 
 .playlist-grid {
-    display: flex;
-    flex-direction: column;
-    padding-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 10px;
 }
 
+/* Restored 3-column Layouts */
 .active-group {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    gap: 8px;
+    width: 100%;
 }
 
 .inactive-group {
     column-count: 3;
-    column-gap: 12px;
+    column-gap: 8px;
+    width: 100%;
 }
 
 .inactive-group .playlist-item {
     break-inside: avoid;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
-/* Playlist Item */
+/* Playlist Item: Compact Chip */
 .playlist-item {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  border-radius: 4px; /* Sharper corners */
   padding: 12px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
   transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
-  height: fit-content;
+  min-height: 48px; /* Increased height for bigger fonts */
 }
 
 .playlist-item:hover {
@@ -243,14 +169,14 @@ body {
 }
 
 .playlist-name {
-  font-size: 1rem;
+  font-size: 1.1rem; /* Increased from 0.85rem */
   font-weight: 500;
   color: var(--text-primary);
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
-  padding-right: 10px;
   line-height: 1.2;
+  padding-right: 10px;
 }
 
 /* Active State */
@@ -260,6 +186,12 @@ body {
   box-shadow: inset 0 0 20px rgba(132, 255, 0, 0.1);
 }
 
+.playlist-item.active .playlist-name {
+    color: var(--text-primary);
+    text-shadow: 0 0 5px rgba(255,255,255,0.3);
+}
+
+/* Indicators */
 .status-indicator {
   width: 40px;
   height: 40px;
@@ -306,7 +238,8 @@ body {
   animation: border-pulse 2s infinite;
 }
 
-/* Divider */
+
+/* Divider (Reverted) */
 .playlist-divider {
     width: 100%;
     height: 2px;
@@ -315,3 +248,5 @@ body {
     opacity: 1;
     box-shadow: 0 0 15px var(--neon-blue), 0 0 30px var(--neon-blue);
 }
+
+/* Optional: Label for top section? We can rely on visual distinction */
