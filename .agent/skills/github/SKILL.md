@@ -28,7 +28,7 @@ This skill enables comprehensive Git and GitHub operations, from basic version c
 ```
 Successfully pushed your code to GitHub! 
 
-View your code here: https://github.com/username/project-name/blob/main/src/app.py
+View your code here: <insert the Github commit URL here>
 ```
 
 ## Link Formatting Best Practices
