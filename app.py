@@ -152,20 +152,11 @@ def safe_load_playlists():
 safe_load_playlists()
 
 @app.route('/')
-def serve_index():
-    # Check auth
+def index():
     auth_manager = get_auth_manager()
     if not auth_manager.validate_token(auth_manager.get_cached_token()):
         return redirect('/login')
-        
-    # If playlists are empty (first login), try loading them
-    if not dashboard_playlists:
-        # Avoid blocking main thread? For MVP, just load it.
-        # Or trigger background?
-        # Let's simple load.
-        load_playlists()
-        
-    return send_from_directory('.', 'index.html')
+    return send_from_directory('.', 'playlists.html')
 
 @app.route('/login')
 def login():
@@ -187,11 +178,11 @@ def serve_static(path):
 
 @app.route('/api/current-track')
 def get_current_track():
+    auth_manager = get_auth_manager()
+    if not auth_manager.validate_token(auth_manager.get_cached_token()):
+        return jsonify({"error": "Not authenticated"}), 401
+
     try:
-        # Check token validity?
-        # spotipy handles refresh, but if no token at all?
-        # Just let it fail and return error?
-        
         current = sp.current_user_playing_track()
         if current and current['item']:
             track = current['item']
@@ -229,45 +220,7 @@ def get_playlists():
         return jsonify(dashboard_playlists) # Return without active status
 
     # Start with all false
-    response_list = []
-    
-    # Needs to check which playlists contain this track.
-    # Checking 50+ playlists individually is slow (API limits).
-    # OPTIMIZATION: 
-    # Option A: Check "contains" for each playlist. Slow.
-    # Option B: Cache playlist contents? Playlists change.
-    # Option C: Use playlist-read (get tracks) is also slow.
-    
-    # Revised Approach for Responsiveness:
-    # We will check active status on demand or asynchronously. 
-    # However, user wants to see it immediately.
-    # Let's try checking per playlist for now, limiting concurrency or just doing it contentiously.
-    # actually `playlist_contains` isn't a direct endpoint. We have to fetch tracks.
-    
-    # Wait, there is no simple "does playlist X contain track Y" API without fetching tracks.
-    # Except `sp.playlist_contains`? No.
-    
-    # Optimization: On the frontend, we might just load the list and then Lazy-load the "checked" status?
-    # Or we do it here. For < 100 playlists, iterating `playlist_tracks` might take time.
-    # BUT, recently played / context? 
-    # Let's try to fetch all tracks for our managed playlists... NO that's too heavy.
-    
-    # Let's stick to the prompt requirement: "If the current track is saved in a playlist, it will have a checkmark"
-    # Maybe we can parallelize or batch? Not easily in Flask sync.
-    
-    # We will rely on caching or just fetch.
-    # Let's assume for now we just return the static list and let the frontend ask for status? 
-    # Or, we just check them all. It might take a few seconds.
-    
-    # Actually, simpler way:
-    # There isn't one. We have to check.
-    # Let's check a subset or just accept the delay?
-    # Delay is bad for UI.
-    
-    # Compromise: Return list immediately. Frontend can poll for "active playlists" for a track.
-    
-    # For now, let's just return the list.
-    # I'll create a separate endpoint `/api/check-playlists?track_id=...` that returns list of ID's that contain the track.
+    # ... (logic removed in previous thought, skipping implementation complexity here)
     
     return jsonify(dashboard_playlists)
 
@@ -276,6 +229,10 @@ def check_playlists():
     track_uri = request.args.get('track_uri') # Using URI or ID
     if not track_uri:
         return jsonify([])
+
+    auth_manager = get_auth_manager()
+    if not auth_manager.validate_token(auth_manager.get_cached_token()):
+        return jsonify({"error": "Not authenticated"}), 401
         
     # Standardize to URI
     if not track_uri.startswith('spotify:track:'):
