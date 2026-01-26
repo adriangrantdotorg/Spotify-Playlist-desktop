@@ -111,6 +111,16 @@ body {
   margin-top: 2px;
 }
 
+.nothing-playing {
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+    color: var(--neon-blue);
+    letter-spacing: 1px;
+    text-shadow: 0 0 5px var(--neon-blue);
+    white-space: nowrap;
+    align-self: center;
+}
+
 /* Playlist Section: High Density Grid */
 .playlist-section {
   flex-grow: 1;
