@@ -1,6 +1,9 @@
 import csv
 import os
 import sys
+from dotenv import load_dotenv
+
+load_dotenv()
 
 try:
     import spotipy
@@ -84,10 +87,10 @@ def main():
         print("No playlists found in CSV.")
         return
 
-    confirm = input(f"Are you sure you want to create {len(playlists_to_create)} playlists? (y/n): ")
-    if confirm.lower() != 'y':
-        print("Operation cancelled.")
-        return
+    # confirm = input(f"Are you sure you want to create {len(playlists_to_create)} playlists? (y/n): ")
+    # if confirm.lower() != 'y':
+    #     print("Operation cancelled.")
+    #     return
 
     # Create Playlists
     created_count = 0

@@ -23,7 +23,7 @@ SCOPE = "user-read-playback-state user-library-read user-library-modify playlist
 def get_auth_manager():
     return SpotifyOAuth(scope=SCOPE, open_browser=False)
 
-sp = spotipy.Spotify(auth_manager=get_auth_manager())
+sp = spotipy.Spotify(auth_manager=get_auth_manager(), requests_timeout=10, status_retries=0, retries=0)
 
 # Global Cache for Playlist IDs
 # Map: "Spotify Playlist Name" -> Playlist ID
@@ -35,6 +35,8 @@ playlist_tracks_cache = {}
 
 def populate_playlist_cache():
     global playlist_tracks_cache
+    # Wait for initial UI load before hammering API
+    time.sleep(10)
     print("Starting background cache population...")
     
     count = 0
@@ -44,7 +46,7 @@ def populate_playlist_cache():
         
         try:
             track_uris = set()
-            results = sp.playlist_items(pid, additional_types=['track'], fields='next,items(track(uri))')
+            results = sp.playlist_items(pid, additional_types=['track'], limit=100, fields='next,items(track(uri))')
             
             def add_items(items):
                 for item in items:
@@ -58,6 +60,7 @@ def populate_playlist_cache():
             
             playlist_tracks_cache[pid] = track_uris
             count += 1
+            time.sleep(2) # Sleep to respect rate limits
             
         except Exception as e:
             print(f"Error caching playlist {sname}: {e}")
@@ -135,6 +138,100 @@ def load_playlists():
     # Start background cache population
     threading.Thread(target=populate_playlist_cache, daemon=True).start()
 
+# Global list for Tracker Page
+tracker_playlists = []
+TRACKER_CSV_FILE = "Tracker to Display.csv"
+
+def load_tracker_playlists():
+    global tracker_playlists
+    tracker_playlists = []
+    
+    csv_mapping = []
+    try:
+        with open(TRACKER_CSV_FILE, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                d_name = row.get("Dashboard Name", "").strip()
+                s_name = row.get("Spotify Playlist Name", "").strip()
+                if d_name and s_name:
+                    csv_mapping.append({"d_name": d_name, "s_name": s_name})
+    except Exception as e:
+        print(f"Error reading Tracker CSV: {e}")
+        return
+
+    print("Fetching user playlists for Tracker...")
+    spotify_playlists = []
+    try:
+        results = sp.current_user_playlists(limit=50)
+        spotify_playlists.extend(results['items'])
+        while results['next']:
+            results = sp.next(results)
+            spotify_playlists.extend(results['items'])
+    except Exception as e:
+        print(f"Error fetching playlists for tracker: {e}")
+        return
+        
+    sp_name_to_id = {p['name']: p['id'] for p in spotify_playlists}
+    
+    for item in csv_mapping:
+        d_name = item['d_name']
+        s_name = item['s_name']
+        
+        if d_name == "DIVIDER":
+            tracker_playlists.append({
+                "name": "DIVIDER",
+                "spotify_name": "DIVIDER",
+                "id": "DIVIDER",
+                "is_divider": True
+            })
+            continue
+
+        if s_name in sp_name_to_id:
+            pid = sp_name_to_id[s_name]
+            # Add to main cache map if not there (helps with toggling)
+            if pid not in playlist_tracks_cache:
+                playlist_tracks_cache[pid] = set()
+            
+            tracker_playlists.append({
+                "name": d_name,
+                "spotify_name": s_name,
+                "id": pid,
+                "is_divider": False
+            })
+        else:
+            print(f"Warning: Tracker Playlist '{s_name}' not found.")
+
+    print(f"Loaded {len(tracker_playlists)} tracker items.")
+    
+    # Trigger cache population for these new IDs
+    threading.Thread(target=populate_tracker_cache, daemon=True).start()
+
+def populate_tracker_cache():
+    global playlist_tracks_cache
+    print("Starting background cache (Tracker)...")
+    count = 0
+    for pl in tracker_playlists:
+        if pl.get('is_divider'): continue
+        
+        pid = pl['id']
+        sname = pl['spotify_name']
+        try:
+            track_uris = set()
+            results = sp.playlist_items(pid, additional_types=['track'], limit=100, fields='next,items(track(uri))')
+            def add_items(items):
+                for item in items:
+                    if item.get('track') and item['track'].get('uri'):
+                        track_uris.add(item['track']['uri'])
+            add_items(results['items'])
+            while results['next']:
+                results = sp.next(results)
+                add_items(results['items'])
+            playlist_tracks_cache[pid] = track_uris
+            count += 1
+        except Exception as e:
+            print(f"Error caching tracker playlist {sname}: {e}")
+    print(f"Tracker Cache complete. Cached {count} playlists.")
+
 # Helper to load playlists only if authorized
 def safe_load_playlists():
     try:
@@ -143,6 +240,7 @@ def safe_load_playlists():
         if token:
             print("Token found. Loading playlists...")
             load_playlists()
+            load_tracker_playlists()
         else:
             print("No valid token found. Skipping initial playlist load.")
     except Exception as e:
@@ -157,6 +255,17 @@ def index():
     if not auth_manager.validate_token(auth_manager.get_cached_token()):
         return redirect('/login')
     return send_from_directory('.', 'playlists.html')
+
+@app.route('/tracker')
+def tracker():
+    auth_manager = get_auth_manager()
+    if not auth_manager.validate_token(auth_manager.get_cached_token()):
+        return redirect('/login')
+    return send_from_directory('.', 'tracker.html')
+
+@app.route('/api/tracker-playlists')
+def get_tracker_playlists():
+    return jsonify(tracker_playlists)
 
 @app.route('/login')
 def login():
@@ -208,9 +317,18 @@ def get_current_track():
             "is_playing": is_playing,
             "uri": track['uri']
         })
+
+    except spotipy.exceptions.SpotifyException as e:
+        if e.http_status == 429:
+            print(f"Rate limit hit: {e}")
+            retry_after = int(e.headers.get('Retry-After', 5))
+            return jsonify({"error": "Rate limit", "retry_after": retry_after}), 429
+        print(f"Spotify error getting current track: {e}")
+        return jsonify({"error": str(e)}), 500
     except Exception as e:
         print(f"Error getting current track: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/api/playlists')
 def get_playlists():

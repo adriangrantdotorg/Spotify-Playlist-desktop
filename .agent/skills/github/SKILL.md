@@ -30,6 +30,9 @@ Successfully pushed your code to GitHub!
 
 View your code here: <insert the Github commit URL here>
 ```
+## AccuracyCheck
+
+Always ensure that the commit URL is accurate, meaning all the code was successfully pushed.
 
 ## Link Formatting Best Practices
 

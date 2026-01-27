@@ -5,8 +5,21 @@ let activePlaylistsMap = new Set(); // Set of Playlist IDs that contain the curr
 
 
 document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     init();
 });
+
+function handleVisibilityChange() {
+    if (document.hidden) {
+        console.log("Tab hidden, slowing down polling to 60s");
+        pollInterval = 60000;
+    } else {
+        console.log("Tab visible, restoring polling to 10s");
+        pollInterval = 10000;
+        // Optional: Trigger immediate update if needed, but let's just let the next poll cycle handle it or rely on the shorter interval
+        // pollCurrentTrack(); // Careful not to create double loops
+    }
+}
 
 async function init() {
     // 1. Fetch initial Playlists (Static info)
@@ -14,12 +27,22 @@ async function init() {
     
     // 2. Start Polling for Current Track
     pollCurrentTrack();
-    setInterval(pollCurrentTrack, 10000); // Poll every 10 seconds
 }
 
 async function fetchPlaylists() {
     try {
-        const res = await fetch('/api/playlists');
+        const isTracker = document.body.classList.contains('tracker-page');
+        const endpoint = isTracker ? '/api/tracker-playlists' : '/api/playlists';
+        
+        const res = await fetch(endpoint);
+        
+        if (res.status === 429) {
+            console.warn("Playlists fetch rate limited, retrying in 5s...");
+            document.getElementById('playlist-grid').innerHTML = '<div style="color:white; padding:20px;">Spotify is rate limiting us... waiting 5s to retry.</div>';
+            setTimeout(fetchPlaylists, 5000);
+            return;
+        }
+
         if (!res.ok) throw new Error(`Failed to fetch playlists: ${res.status}`);
         
         allPlaylists = await res.json();
@@ -38,10 +61,43 @@ async function fetchPlaylists() {
 }
 
 
+
+let pollInterval = 10000;
+let consecutiveErrors = 0;
+
 async function pollCurrentTrack() {
     try {
         const res = await fetch('/api/current-track');
-        if (res.status === 200) {
+        
+        if (res.status === 429) {
+            const data = await res.json();
+            const retryAfter = data.retry_after || 5;
+            
+            
+            console.warn(`Rate limited, Retry-After: ${retryAfter}s`);
+            const trackTitleEl = document.getElementById('track-title') || document.getElementById('track-name');
+            if (trackTitleEl) trackTitleEl.textContent = "Spotify Rate Limited";
+            
+            // Start Countdown
+            let timeLeft = retryAfter;
+            document.getElementById('artist-name').textContent = `Retrying in ${timeLeft}s...`;
+            
+            const countdownInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft > 0) {
+                    document.getElementById('artist-name').textContent = `Retrying in ${timeLeft}s...`;
+                } else {
+                    clearInterval(countdownInterval);
+                }
+            }, 1000);
+
+            // Set next poll
+            pollInterval = (retryAfter * 1000) + 500; // Add buffer
+            
+        } else if (res.status === 200) {
+            consecutiveErrors = 0;
+            pollInterval = 10000; // Reset to 10s
+            
             const track = await res.json();
             if (track) {
                 const idChanged = !currentTrack || currentTrack.id !== track.id;
@@ -51,20 +107,33 @@ async function pollCurrentTrack() {
                     currentTrack = track;
                     updateTrackInfo(track);
                     if (idChanged) {
-                        // Optimistically render to ensure headers/visuals are right, 
-                        // checks will come later
-                        renderPlaylists();
-                        await checkPlaylists(track.uri);
+                         try {
+                            // Optimistically render to ensure headers/visuals are right, 
+                            // checks will come later
+                            renderPlaylists();
+                            await checkPlaylists(track.uri);
+                        } catch (err) {
+                            console.error("Error checking playlists:", err);
+                        }
                     }
                 }
             } else {
                 updateTrackInfo(null);
             }
+        } else {
+             // Other errors (500, etc)
+             consecutiveErrors++;
+             pollInterval = Math.min(pollInterval * 1.5, 30000); 
         }
     } catch (e) {
         console.error("Polling error:", e);
+        consecutiveErrors++;
+        pollInterval = Math.min(pollInterval * 1.5, 30000);
     }
+    
+    setTimeout(pollCurrentTrack, pollInterval);
 }
+
 
 async function checkPlaylists(trackUri) {
     try {
@@ -109,21 +178,22 @@ function updateTrackInfo(track) {
 function renderPlaylists() {
     const grid = document.getElementById('playlist-grid');
     grid.innerHTML = '';
-
-    // Map state to playlists
-    const playlistsWithState = allPlaylists.map(p => ({
-        ...p,
-        isActive: activePlaylistsMap.has(p.id)
-    }));
-
-    // Split into active and inactive
-    const activePlaylists = playlistsWithState.filter(p => p.isActive).sort((a, b) => a.name.localeCompare(b.name));
-    const inactivePlaylists = playlistsWithState.filter(p => !p.isActive).sort((a, b) => a.name.localeCompare(b.name));
+    
+    const isTracker = document.body.classList.contains('tracker-page');
 
     // Helper to create item
     const createItem = (playlist) => {
+        // Handle DIVIDER for Tracker
+        if (isTracker && playlist.is_divider) {
+            const div = document.createElement('div');
+            div.className = 'section-divider-green';
+            return div;
+        }
+
+        const isActive = activePlaylistsMap.has(playlist.id);
+        
         const item = document.createElement('div');
-        item.className = `playlist-item ${playlist.isActive ? 'active' : ''}`;
+        item.className = `playlist-item ${isActive ? 'active' : ''}`;
         
         // Use ID for toggling
         item.onclick = () => togglePlaylist(playlist);
@@ -143,27 +213,53 @@ function renderPlaylists() {
         return item;
     };
 
-    // Render Active Group (Column Layout)
-    if (activePlaylists.length > 0) {
-        const activeGroup = document.createElement('div');
-        activeGroup.className = 'active-group';
-        activePlaylists.forEach(p => activeGroup.appendChild(createItem(p)));
-        grid.appendChild(activeGroup);
-    }
+    if (isTracker) {
+        // Tracker Logic: Linear Rendering, Strict Order
+        const trackerGroup = document.createElement('div');
+        trackerGroup.className = 'tracker-list'; // We might need css for this, but column is default
+        trackerGroup.style.display = 'flex';
+        trackerGroup.style.flexDirection = 'column';
+        trackerGroup.style.gap = '8px';
+        
+        allPlaylists.forEach(p => {
+             trackerGroup.appendChild(createItem(p));
+        });
+        grid.appendChild(trackerGroup);
 
-    // Divider
-    if (activePlaylists.length > 0 && inactivePlaylists.length > 0) {
-        const divider = document.createElement('div');
-        divider.className = 'playlist-divider';
-        grid.appendChild(divider);
-    }
+    } else {
+        // Standard Dashboard Logic: Split Active/Inactive
+        
+        // Map state to playlists locally for sorting
+        const playlistsWithState = allPlaylists.map(p => ({
+            ...p,
+            isActive: activePlaylistsMap.has(p.id)
+        }));
 
-    // Render Inactive Group (Column Layout)
-    if (inactivePlaylists.length > 0) {
-        const inactiveGroup = document.createElement('div');
-        inactiveGroup.className = 'inactive-group';
-        inactivePlaylists.forEach(p => inactiveGroup.appendChild(createItem(p)));
-        grid.appendChild(inactiveGroup);
+        const activePlaylists = playlistsWithState.filter(p => p.isActive).sort((a, b) => a.name.localeCompare(b.name));
+        const inactivePlaylists = playlistsWithState.filter(p => !p.isActive).sort((a, b) => a.name.localeCompare(b.name));
+
+        // Render Active Group (Column Layout)
+        if (activePlaylists.length > 0) {
+            const activeGroup = document.createElement('div');
+            activeGroup.className = 'active-group';
+            activePlaylists.forEach(p => activeGroup.appendChild(createItem(p)));
+            grid.appendChild(activeGroup);
+        }
+
+        // Divider
+        if (activePlaylists.length > 0 && inactivePlaylists.length > 0) {
+            const divider = document.createElement('div');
+            divider.className = 'playlist-divider';
+            grid.appendChild(divider);
+        }
+
+        // Render Inactive Group (Column Layout)
+        if (inactivePlaylists.length > 0) {
+            const inactiveGroup = document.createElement('div');
+            inactiveGroup.className = 'inactive-group';
+            inactivePlaylists.forEach(p => inactiveGroup.appendChild(createItem(p)));
+            grid.appendChild(inactiveGroup);
+        }
     }
 }
 
