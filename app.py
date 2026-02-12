@@ -35,8 +35,8 @@ playlist_tracks_cache = {}
 
 def populate_playlist_cache():
     global playlist_tracks_cache
-    # Wait for initial UI load before hammering API
-    time.sleep(10)
+    # Reduced wait time for faster initial response
+    time.sleep(3)
     print("Starting background cache population...")
     
     count = 0
@@ -127,11 +127,6 @@ def load_playlists():
             seen_names.add(d_name)
         else:
             print(f"Warning: Playlist '{s_name}' not found in your Spotify library.")
-
-    print(f"Loaded {len(dashboard_playlists)} matched playlists.")
-
-    # Start background cache population
-    threading.Thread(target=populate_playlist_cache, daemon=True).start()
 
     print(f"Loaded {len(dashboard_playlists)} matched playlists.")
 
@@ -238,13 +233,15 @@ def safe_load_playlists():
         auth_manager = get_auth_manager()
         token = auth_manager.get_cached_token()
         if token:
-            print("Token found. Loading playlists...")
+            print(f"Token found. Loading playlists... (expires: {token.get('expires_at', 'unknown')})")
             load_playlists()
             load_tracker_playlists()
         else:
             print("No valid token found. Skipping initial playlist load.")
     except Exception as e:
         print(f"Error checking token/loading playlists: {e}")
+        import traceback
+        traceback.print_exc()
 
 # Initial Load Attempt
 safe_load_playlists()
@@ -279,6 +276,9 @@ def callback():
     code = request.args.get('code')
     if code:
         auth_manager.get_access_token(code)
+        # Load playlists after successful authentication
+        load_playlists()
+        load_tracker_playlists()
     return redirect('/')
 
 @app.route('/<path:path>')
@@ -351,21 +351,52 @@ def check_playlists():
     auth_manager = get_auth_manager()
     if not auth_manager.validate_token(auth_manager.get_cached_token()):
         return jsonify({"error": "Not authenticated"}), 401
-        
+
     # Standardize to URI
     if not track_uri.startswith('spotify:track:'):
         track_uri = f'spotify:track:{track_uri}'
 
     active_ids = []
-    
-    # Check cache
-    for pl in dashboard_playlists:
+    playlists_to_check_live = []
+
+    # Combine both dashboard and tracker playlists for checking
+    all_playlists = dashboard_playlists + [p for p in tracker_playlists if not p.get('is_divider')]
+
+    # First check cache
+    for pl in all_playlists:
         pid = pl['id']
         # If cache exists for this playlist, use it
         if pid in playlist_tracks_cache:
             if track_uri in playlist_tracks_cache[pid]:
                 active_ids.append(pid)
-    
+        else:
+            # Cache not ready for this playlist, need to check live
+            playlists_to_check_live.append((pid, pl['spotify_name']))
+
+    # For playlists not in cache, do a live check
+    if playlists_to_check_live:
+        print(f"Cache incomplete, checking {len(playlists_to_check_live)} playlists live...")
+        for pid, sname in playlists_to_check_live:
+            try:
+                # Check if track is in this playlist
+                results = sp.playlist_items(pid, additional_types=['track'], limit=100, fields='items(track(uri))')
+
+                # Check first page
+                for item in results['items']:
+                    if item.get('track') and item['track'].get('uri') == track_uri:
+                        active_ids.append(pid)
+                        break
+                else:
+                    # Check remaining pages if not found
+                    while results.get('next') and pid not in active_ids:
+                        results = sp.next(results)
+                        for item in results['items']:
+                            if item.get('track') and item['track'].get('uri') == track_uri:
+                                active_ids.append(pid)
+                                break
+            except Exception as e:
+                print(f"Error checking playlist {sname} live: {e}")
+
     return jsonify(active_ids)
 
 
