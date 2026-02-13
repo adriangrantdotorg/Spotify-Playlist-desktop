@@ -355,14 +355,14 @@ body.tracker-page {
   width: 100%;
   height: 0; /* No visible line, just spacing */
   background: transparent;
-  margin: .5em 0; /* 3 line breaks worth of spacing */
+  margin: 0.5em 0; /* 3 line breaks worth of spacing */
   opacity: 0;
   flex-shrink: 0;
   box-shadow: none;
 }
 
 body.tracker-page .app-container {
-    background: transparent;
+  background: transparent;
 }
 
 /* Playlists Page Specific Styles */
@@ -372,5 +372,47 @@ body.playlists-page {
 }
 
 body.playlists-page .app-container {
-    background: transparent;
+  background: transparent;
+}
+
+/* Queue Page Specific Styles */
+body.queue-page {
+  background: url("Images/Queue/orange.png") no-repeat center center fixed;
+  background-size: cover;
+}
+
+body.queue-page .app-container {
+  background: transparent;
+}
+
+/* Queue Page Album Cover Styling */
+.queue-header {
+  gap: 16px;
+}
+
+.album-cover {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.album-cover:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.album-name {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: var(--glow-text);
+  word-wrap: break-word;
+  line-height: 1.3;
 }

@@ -118,6 +118,17 @@ def load_playlists():
             
         if s_name in sp_name_to_id:
             pid = sp_name_to_id[s_name]
+            
+            # Handle duplicate playlists - force specific IDs from "Playlists Duplicates - fixed.csv"
+            duplicate_overrides = {
+                "Cruise Control 🚘 NEW 2026 R&B to ride to 🚗 💨": "6PaI7gZiVU0wlBusCwYyh9",
+                "BEST NEW 2026 Conscious Hip-Hop": "593KXjedxJrSCjf6jC2RUq",
+                "NEW 2026 S3XY DRILL NO DIDDY 🍑🍆🔫 FIYAH SEXY R&B Hip-Hop Rap 💥 (updated weekly)": "4sThCBzRZyO0DY507WACHD"
+            }
+            
+            if s_name in duplicate_overrides:
+                pid = duplicate_overrides[s_name]
+            
             playlist_map[s_name] = pid
             dashboard_playlists.append({
                 "name": d_name,
@@ -136,6 +147,10 @@ def load_playlists():
 # Global list for Tracker Page
 tracker_playlists = []
 TRACKER_CSV_FILE = "Tracker to Display.csv"
+
+# Global list for Queue Page
+queue_playlists = []
+QUEUE_CSV_FILE = "Queue to Display.csv"
 
 def load_tracker_playlists():
     global tracker_playlists
@@ -183,6 +198,20 @@ def load_tracker_playlists():
 
         if s_name in sp_name_to_id:
             pid = sp_name_to_id[s_name]
+            
+            # Handle duplicate playlists - force specific IDs from "Tracker Duplicates - fixed.csv"
+            duplicate_overrides = {
+                "A&R - Unsigned Male Rappers to Track [2026]": "6kpKC8PtXItyBnt9ZmD2m6",
+                "A&R - Rappers to Track - Male (200K - 500k) [2026]": "0s18ZTUYR2bgO8lgIQ1z3W",
+                "A&R - SIGNED Rappers to Track [2026]": "0y22gj9CjSOk6kiJX48f3e",
+                "A&R - SIGNED Rappers to Track - Female [2026]": "444aXdKo8VqB5sGcJ19PRi",
+                "A&R - Unsigned R&B Singers to Track [2026]": "1Ab0pjOxVGlzz6OsFFSqqZ",
+                "A&R - SIGNED R&B Singers to Track [2026]": "0u3S5gh8gSOrOT1NMP94dw"
+            }
+            
+            if s_name in duplicate_overrides:
+                pid = duplicate_overrides[s_name]
+            
             # Add to main cache map if not there (helps with toggling)
             if pid not in playlist_tracks_cache:
                 playlist_tracks_cache[pid] = set()
@@ -227,6 +256,96 @@ def populate_tracker_cache():
             print(f"Error caching tracker playlist {sname}: {e}")
     print(f"Tracker Cache complete. Cached {count} playlists.")
 
+def load_queue_playlists():
+    global queue_playlists
+    queue_playlists = []
+    
+    csv_mapping = []
+    try:
+        with open(QUEUE_CSV_FILE, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                d_name = row.get("Name", "").strip()
+                s_name = row.get("Spotify Playlist Name", "").strip()
+                if d_name and s_name:
+                    csv_mapping.append({"d_name": d_name, "s_name": s_name})
+    except Exception as e:
+        print(f"Error reading Queue CSV: {e}")
+        return
+
+    print("Fetching user playlists for Queue...")
+    spotify_playlists = []
+    try:
+        results = sp.current_user_playlists(limit=50)
+        spotify_playlists.extend(results['items'])
+        while results['next']:
+            results = sp.next(results)
+            spotify_playlists.extend(results['items'])
+    except Exception as e:
+        print(f"Error fetching playlists for queue: {e}")
+        return
+        
+    sp_name_to_id = {p['name']: p['id'] for p in spotify_playlists}
+    
+    for item in csv_mapping:
+        d_name = item['d_name']
+        s_name = item['s_name']
+        
+        if d_name == "LINE BREAK":
+            queue_playlists.append({
+                "name": "DIVIDER",
+                "spotify_name": "DIVIDER",
+                "id": "DIVIDER",
+                "is_divider": True
+            })
+            continue
+
+        if s_name in sp_name_to_id:
+            pid = sp_name_to_id[s_name]
+            # Add to main cache map if not there (helps with toggling)
+            if pid not in playlist_tracks_cache:
+                playlist_tracks_cache[pid] = set()
+            
+            queue_playlists.append({
+                "name": d_name,
+                "spotify_name": s_name,
+                "id": pid,
+                "is_divider": False
+            })
+        else:
+            print(f"Warning: Queue Playlist '{s_name}' not found.")
+
+    print(f"Loaded {len(queue_playlists)} queue items.")
+    
+    # Trigger cache population for these new IDs
+    threading.Thread(target=populate_queue_cache, daemon=True).start()
+
+def populate_queue_cache():
+    global playlist_tracks_cache
+    print("Starting background cache (Queue)...")
+    count = 0
+    for pl in queue_playlists:
+        if pl.get('is_divider'): continue
+        
+        pid = pl['id']
+        sname = pl['spotify_name']
+        try:
+            track_uris = set()
+            results = sp.playlist_items(pid, additional_types=['track'], limit=100, fields='next,items(track(uri))')
+            def add_items(items):
+                for item in items:
+                    if item.get('track') and item['track'].get('uri'):
+                        track_uris.add(item['track']['uri'])
+            add_items(results['items'])
+            while results['next']:
+                results = sp.next(results)
+                add_items(results['items'])
+            playlist_tracks_cache[pid] = track_uris
+            count += 1
+        except Exception as e:
+            print(f"Error caching queue playlist {sname}: {e}")
+    print(f"Queue Cache complete. Cached {count} playlists.")
+
 # Helper to load playlists only if authorized
 def safe_load_playlists():
     try:
@@ -236,6 +355,7 @@ def safe_load_playlists():
             print(f"Token found. Loading playlists... (expires: {token.get('expires_at', 'unknown')})")
             load_playlists()
             load_tracker_playlists()
+            load_queue_playlists()
         else:
             print("No valid token found. Skipping initial playlist load.")
     except Exception as e:
@@ -264,6 +384,17 @@ def tracker():
 def get_tracker_playlists():
     return jsonify(tracker_playlists)
 
+@app.route('/queue')
+def queue():
+    auth_manager = get_auth_manager()
+    if not auth_manager.validate_token(auth_manager.get_cached_token()):
+        return redirect('/login')
+    return send_from_directory('.', 'queue.html')
+
+@app.route('/api/queue-playlists')
+def get_queue_playlists():
+    return jsonify(queue_playlists)
+
 @app.route('/login')
 def login():
     auth_manager = get_auth_manager()
@@ -279,6 +410,7 @@ def callback():
         # Load playlists after successful authentication
         load_playlists()
         load_tracker_playlists()
+        load_queue_playlists()
     return redirect('/')
 
 @app.route('/<path:path>')
@@ -309,10 +441,18 @@ def get_current_track():
         # current_user_saved_tracks_contains returns list of bools
         is_liked = sp.current_user_saved_tracks_contains([track['id']])[0]
         
+        # Get album info
+        album_name = track['album']['name'] if track.get('album') else 'Unknown Album'
+        album_cover = track['album']['images'][0]['url'] if track.get('album') and track['album'].get('images') else None
+        album_id = track['album']['id'] if track.get('album') else None
+        
         return jsonify({
             "id": track['id'],
             "name": track['name'],
             "artist": ", ".join([artist['name'] for artist in track['artists']]),
+            "album": album_name,
+            "album_id": album_id,
+            "album_cover": album_cover,
             "is_liked": is_liked,
             "is_playing": is_playing,
             "uri": track['uri']
@@ -359,8 +499,8 @@ def check_playlists():
     active_ids = []
     playlists_to_check_live = []
 
-    # Combine both dashboard and tracker playlists for checking
-    all_playlists = dashboard_playlists + [p for p in tracker_playlists if not p.get('is_divider')]
+    # Combine dashboard, tracker, and queue playlists for checking
+    all_playlists = dashboard_playlists + [p for p in tracker_playlists if not p.get('is_divider')] + [p for p in queue_playlists if not p.get('is_divider')]
 
     # First check cache
     for pl in all_playlists:
@@ -445,5 +585,75 @@ def toggle_playlist():
         print(f"Error toggling playlist: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/playlist/toggle-album', methods=['POST'])
+def toggle_album_playlist():
+    """Toggle all tracks from an album in a playlist (queue page only)"""
+    data = request.json
+    playlist_id = data.get('playlist_id')
+    album_id = data.get('album_id')
+    action = data.get('action')  # 'add' or 'remove'
+    
+    if not all([playlist_id, album_id, action]):
+        return jsonify({"error": "Missing data"}), 400
+
+    try:
+        # Get all tracks from the album
+        album_tracks = []
+        results = sp.album_tracks(album_id, limit=50)
+        album_tracks.extend(results['items'])
+        
+        while results['next']:
+            results = sp.next(results)
+            album_tracks.extend(results['items'])
+        
+        # Extract track URIs
+        track_uris = [track['uri'] for track in album_tracks if track and track.get('uri')]
+        
+        if not track_uris:
+            return jsonify({"error": "No tracks found in album"}), 404
+        
+        if action == 'add':
+            # Add all tracks to playlist
+            # Spotify API limits to 100 tracks per request
+            for i in range(0, len(track_uris), 100):
+                batch = track_uris[i:i+100]
+                sp.playlist_add_items(playlist_id, batch)
+            
+            # Update cache
+            if playlist_id in playlist_tracks_cache:
+                playlist_tracks_cache[playlist_id].update(track_uris)
+            
+            # Like all songs
+            track_ids = [uri.replace('spotify:track:', '') for uri in track_uris]
+            for i in range(0, len(track_ids), 50):
+                batch = track_ids[i:i+50]
+                sp.current_user_saved_tracks_add(batch)
+            
+            message = f"Added {len(track_uris)} tracks from album to playlist and Liked Songs."
+        
+        elif action == 'remove':
+            # Remove all tracks from playlist
+            # Spotify API limits to 100 tracks per request
+            for i in range(0, len(track_uris), 100):
+                batch = track_uris[i:i+100]
+                sp.playlist_remove_all_occurrences_of_items(playlist_id, batch)
+            
+            # Update cache
+            if playlist_id in playlist_tracks_cache:
+                for uri in track_uris:
+                    playlist_tracks_cache[playlist_id].discard(uri)
+            
+            message = f"Removed {len(track_uris)} tracks from album from playlist."
+        
+        else:
+            return jsonify({"error": "Invalid action"}), 400
+
+        return jsonify({"success": True, "message": message, "track_count": len(track_uris)})
+
+    except Exception as e:
+        print(f"Error toggling album in playlist: {e}")
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(port=8888, debug=True)
+

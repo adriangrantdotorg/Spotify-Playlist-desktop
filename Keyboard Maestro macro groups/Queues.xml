@@ -10,9 +10,9 @@
 		<key>AddToStatusMenu</key>
 		<false/>
 		<key>CreationDate</key>
-		<real>763183370.03736401</real>
+		<real>734728768.60407102</real>
 		<key>CustomIconData</key>
-		<string>KMEP-GenericApplication-/Applications/Spotify.app</string>
+		<string>KMEP-GenericApplication-/Applications/TIDAL.app</string>
 		<key>DisplayToggle</key>
 		<false/>
 		<key>KeyCode</key>
@@ -26,19 +26,35 @@
 						<key>Action</key>
 						<string>ByPasting</string>
 						<key>ActionUID</key>
-						<integer>16203711</integer>
+						<integer>15375640</integer>
 						<key>MacroActionType</key>
 						<string>InsertText</string>
 						<key>Text</key>
-						<string>🎧 Queue - Unsigned RAP (&lt;200K listeners)</string>
+						<string>🎧 Queue - Unsigned (&lt;200K listeners)</string>
 					</dict>
 					<dict>
 						<key>ActionUID</key>
-						<integer>16203736</integer>
+						<integer>15375641</integer>
+						<key>IsActive</key>
+						<false/>
 						<key>MacroActionType</key>
 						<string>ExecuteSubroutine</string>
 						<key>MacroUID</key>
-						<string>D53C0BC8-B95B-48BD-8C62-73A7803381E1</string>
+						<string>D870529B-93FB-402A-80C1-FD041B33748E</string>
+						<key>Parameters</key>
+						<array/>
+						<key>ResultVariable</key>
+						<string></string>
+						<key>TimeOutAbortsMacro</key>
+						<true/>
+					</dict>
+					<dict>
+						<key>ActionUID</key>
+						<integer>15382071</integer>
+						<key>MacroActionType</key>
+						<string>ExecuteSubroutine</string>
+						<key>MacroUID</key>
+						<string>EC5131FC-0B13-4515-9501-CEB84A9F0655</string>
 						<key>Parameters</key>
 						<array/>
 						<key>ResultVariable</key>
@@ -50,7 +66,7 @@
 						<key>ActionName</key>
 						<string>Done Notification ✅</string>
 						<key>ActionUID</key>
-						<integer>16203713</integer>
+						<integer>15382072</integer>
 						<key>MacroActionType</key>
 						<string>Notification</string>
 						<key>SoundName</key>
@@ -60,21 +76,21 @@
 						<key>Text</key>
 						<string></string>
 						<key>Title</key>
-						<string>✅ Queue - UNSIGNED (&lt;200K listeners)</string>
+						<string>✅ Queue - UNSIGNED Rappers</string>
 					</dict>
 				</array>
 				<key>CreationDate</key>
-				<real>763183370.037413</real>
+				<real>734728768.60483205</real>
 				<key>CustomIconData</key>
 				<string>KMEC=Circle=KMCOLOR:252,19,60,0=🎧=86=0=10=1=KMCOLOR:0,0,0,255</string>
 				<key>ModificationDate</key>
-				<real>765583657.04439902</real>
+				<real>757044475.31764197</real>
 				<key>Name</key>
 				<string>01)Male Rappers (&lt;200K)</string>
 				<key>Triggers</key>
 				<array/>
 				<key>UID</key>
-				<string>73516670-9B31-46AD-A7ED-EB75B05F1B94</string>
+				<string>B7215787-97D2-44CD-A9A7-CA34F80A81B5</string>
 			</dict>
 			<dict>
 				<key>Actions</key>
@@ -83,7 +99,7 @@
 						<key>Action</key>
 						<string>ByPasting</string>
 						<key>ActionUID</key>
-						<integer>16203714</integer>
+						<integer>15376082</integer>
 						<key>MacroActionType</key>
 						<string>InsertText</string>
 						<key>Text</key>
@@ -91,11 +107,27 @@
 					</dict>
 					<dict>
 						<key>ActionUID</key>
-						<integer>16203750</integer>
+						<integer>15376083</integer>
+						<key>IsActive</key>
+						<false/>
 						<key>MacroActionType</key>
 						<string>ExecuteSubroutine</string>
 						<key>MacroUID</key>
-						<string>D53C0BC8-B95B-48BD-8C62-73A7803381E1</string>
+						<string>D870529B-93FB-402A-80C1-FD041B33748E</string>
+						<key>Parameters</key>
+						<array/>
+						<key>ResultVariable</key>
+						<string></string>
+						<key>TimeOutAbortsMacro</key>
+						<true/>
+					</dict>
+					<dict>
+						<key>ActionUID</key>
+						<integer>15382073</integer>
+						<key>MacroActionType</key>
+						<string>ExecuteSubroutine</string>
+						<key>MacroUID</key>
+						<string>EC5131FC-0B13-4515-9501-CEB84A9F0655</string>
 						<key>Parameters</key>
 						<array/>
 						<key>ResultVariable</key>
@@ -107,7 +139,7 @@
 						<key>ActionName</key>
 						<string>Done Notification ✅</string>
 						<key>ActionUID</key>
-						<integer>16203716</integer>
+						<integer>15382074</integer>
 						<key>MacroActionType</key>
 						<string>Notification</string>
 						<key>SoundName</key>
@@ -121,17 +153,17 @@
 					</dict>
 				</array>
 				<key>CreationDate</key>
-				<real>763183370.03745103</real>
+				<real>734729057.91229904</real>
 				<key>CustomIconData</key>
 				<string>KMEC=Circle=KMCOLOR:252,19,60,0=🎧=86=0=10=1=KMCOLOR:0,0,0,255</string>
 				<key>ModificationDate</key>
-				<real>763183686.06581199</real>
+				<real>735942780.92199302</real>
 				<key>Name</key>
 				<string>02)Unsigned R&amp;B</string>
 				<key>Triggers</key>
 				<array/>
 				<key>UID</key>
-				<string>85160926-801B-4330-BD05-B27014293754</string>
+				<string>776480C7-1A07-4881-A160-362CCF4D2C07</string>
 			</dict>
 			<dict>
 				<key>Actions</key>
@@ -140,7 +172,7 @@
 						<key>Action</key>
 						<string>ByPasting</string>
 						<key>ActionUID</key>
-						<integer>16203717</integer>
+						<integer>15376084</integer>
 						<key>MacroActionType</key>
 						<string>InsertText</string>
 						<key>Text</key>
@@ -148,11 +180,11 @@
 					</dict>
 					<dict>
 						<key>ActionUID</key>
-						<integer>16203802</integer>
+						<integer>15376085</integer>
 						<key>MacroActionType</key>
 						<string>ExecuteSubroutine</string>
 						<key>MacroUID</key>
-						<string>D53C0BC8-B95B-48BD-8C62-73A7803381E1</string>
+						<string>EC5131FC-0B13-4515-9501-CEB84A9F0655</string>
 						<key>Parameters</key>
 						<array/>
 						<key>ResultVariable</key>
@@ -164,7 +196,7 @@
 						<key>ActionName</key>
 						<string>Done Notification ✅</string>
 						<key>ActionUID</key>
-						<integer>16203719</integer>
+						<integer>15382060</integer>
 						<key>MacroActionType</key>
 						<string>Notification</string>
 						<key>SoundName</key>
@@ -178,17 +210,17 @@
 					</dict>
 				</array>
 				<key>CreationDate</key>
-				<real>763183370.03746903</real>
+				<real>734729121.66776097</real>
 				<key>CustomIconData</key>
 				<string>KMEC=Circle=KMCOLOR:252,19,60,0=🎧=86=0=10=1=KMCOLOR:0,0,0,255</string>
 				<key>ModificationDate</key>
-				<real>763183805.00846398</real>
+				<real>755223981.88098001</real>
 				<key>Name</key>
 				<string>04)MAJOR Rappers</string>
 				<key>Triggers</key>
 				<array/>
 				<key>UID</key>
-				<string>4AF805AB-3990-474A-ADDA-13D7C3812BFC</string>
+				<string>2FD6A2F1-B477-4172-9FE7-CC9C6F84C022</string>
 			</dict>
 			<dict>
 				<key>Actions</key>
@@ -197,7 +229,7 @@
 						<key>Action</key>
 						<string>ByPasting</string>
 						<key>ActionUID</key>
-						<integer>16203720</integer>
+						<integer>15376086</integer>
 						<key>MacroActionType</key>
 						<string>InsertText</string>
 						<key>Text</key>
@@ -205,11 +237,27 @@
 					</dict>
 					<dict>
 						<key>ActionUID</key>
-						<integer>16203805</integer>
+						<integer>15376087</integer>
+						<key>IsActive</key>
+						<false/>
 						<key>MacroActionType</key>
 						<string>ExecuteSubroutine</string>
 						<key>MacroUID</key>
-						<string>D53C0BC8-B95B-48BD-8C62-73A7803381E1</string>
+						<string>D870529B-93FB-402A-80C1-FD041B33748E</string>
+						<key>Parameters</key>
+						<array/>
+						<key>ResultVariable</key>
+						<string></string>
+						<key>TimeOutAbortsMacro</key>
+						<true/>
+					</dict>
+					<dict>
+						<key>ActionUID</key>
+						<integer>15382075</integer>
+						<key>MacroActionType</key>
+						<string>ExecuteSubroutine</string>
+						<key>MacroUID</key>
+						<string>EC5131FC-0B13-4515-9501-CEB84A9F0655</string>
 						<key>Parameters</key>
 						<array/>
 						<key>ResultVariable</key>
@@ -221,7 +269,7 @@
 						<key>ActionName</key>
 						<string>Done Notification ✅</string>
 						<key>ActionUID</key>
-						<integer>16203722</integer>
+						<integer>15382076</integer>
 						<key>MacroActionType</key>
 						<string>Notification</string>
 						<key>SoundName</key>
@@ -235,17 +283,17 @@
 					</dict>
 				</array>
 				<key>CreationDate</key>
-				<real>763183370.03751802</real>
+				<real>734729149.07976902</real>
 				<key>CustomIconData</key>
 				<string>KMEC=Circle=KMCOLOR:252,19,60,0=🎧=86=0=10=1=KMCOLOR:0,0,0,255</string>
 				<key>ModificationDate</key>
-				<real>763183809.616822</real>
+				<real>755223987.50786304</real>
 				<key>Name</key>
 				<string>05)MAJOR R&amp;B</string>
 				<key>Triggers</key>
 				<array/>
 				<key>UID</key>
-				<string>F6BBF118-AB14-421A-BE4D-7F8A64B42C41</string>
+				<string>8F521320-666F-49E1-A319-5753FCFE4C2E</string>
 			</dict>
 			<dict>
 				<key>Actions</key>
@@ -254,7 +302,7 @@
 						<key>Action</key>
 						<string>ByPasting</string>
 						<key>ActionUID</key>
-						<integer>16203723</integer>
+						<integer>15376091</integer>
 						<key>MacroActionType</key>
 						<string>InsertText</string>
 						<key>Text</key>
@@ -262,11 +310,27 @@
 					</dict>
 					<dict>
 						<key>ActionUID</key>
-						<integer>16203808</integer>
+						<integer>15376092</integer>
+						<key>IsActive</key>
+						<false/>
 						<key>MacroActionType</key>
 						<string>ExecuteSubroutine</string>
 						<key>MacroUID</key>
-						<string>D53C0BC8-B95B-48BD-8C62-73A7803381E1</string>
+						<string>D870529B-93FB-402A-80C1-FD041B33748E</string>
+						<key>Parameters</key>
+						<array/>
+						<key>ResultVariable</key>
+						<string></string>
+						<key>TimeOutAbortsMacro</key>
+						<true/>
+					</dict>
+					<dict>
+						<key>ActionUID</key>
+						<integer>15382077</integer>
+						<key>MacroActionType</key>
+						<string>ExecuteSubroutine</string>
+						<key>MacroUID</key>
+						<string>EC5131FC-0B13-4515-9501-CEB84A9F0655</string>
 						<key>Parameters</key>
 						<array/>
 						<key>ResultVariable</key>
@@ -278,7 +342,7 @@
 						<key>ActionName</key>
 						<string>Done Notification ✅</string>
 						<key>ActionUID</key>
-						<integer>16203725</integer>
+						<integer>15382078</integer>
 						<key>MacroActionType</key>
 						<string>Notification</string>
 						<key>SoundName</key>
@@ -292,23 +356,23 @@
 					</dict>
 				</array>
 				<key>CreationDate</key>
-				<real>763183370.03754103</real>
+				<real>734729431.59796298</real>
 				<key>CustomIconData</key>
 				<string>KMEC=Circle=KMCOLOR:252,19,60,0=💅🏾=86=0=10=1=KMCOLOR:0,0,0,255</string>
 				<key>ModificationDate</key>
-				<real>763183813.38832998</real>
+				<real>757044745.292063</real>
 				<key>Name</key>
 				<string>07)Female Rappers (&lt;200K)</string>
 				<key>Triggers</key>
 				<array/>
 				<key>UID</key>
-				<string>2150C8A1-7BA4-4E70-904E-AC04549A4F1C</string>
+				<string>39FA10BE-AD5E-40DF-84FA-8A905463E982</string>
 			</dict>
 			<dict>
 				<key>Actions</key>
 				<array/>
 				<key>CreationDate</key>
-				<real>763183370.03755498</real>
+				<real>486575765.970276</real>
 				<key>CustomIconData</key>
 				<data>
 				iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ
@@ -325,13 +389,13 @@
 				<key>Triggers</key>
 				<array/>
 				<key>UID</key>
-				<string>7DF2AC8B-122D-4EDF-91E1-F607BCCE414F</string>
+				<string>FB05DC83-1460-40D3-880D-7FC616C7EF6E</string>
 			</dict>
 			<dict>
 				<key>Actions</key>
 				<array/>
 				<key>CreationDate</key>
-				<real>763183370.037588</real>
+				<real>486575765.970276</real>
 				<key>CustomIconData</key>
 				<data>
 				iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ
@@ -348,7 +412,7 @@
 				<key>Triggers</key>
 				<array/>
 				<key>UID</key>
-				<string>476C4D43-7C6C-407E-ACDA-22B80B8D9C4B</string>
+				<string>407DD3AB-852C-47AC-9998-ED81A68F5439</string>
 			</dict>
 			<dict>
 				<key>Actions</key>
@@ -357,7 +421,7 @@
 						<key>Action</key>
 						<string>ByPasting</string>
 						<key>ActionUID</key>
-						<integer>16203726</integer>
+						<integer>15410677</integer>
 						<key>MacroActionType</key>
 						<string>InsertText</string>
 						<key>Text</key>
@@ -365,11 +429,27 @@
 					</dict>
 					<dict>
 						<key>ActionUID</key>
-						<integer>16203814</integer>
+						<integer>15410678</integer>
+						<key>IsActive</key>
+						<false/>
 						<key>MacroActionType</key>
 						<string>ExecuteSubroutine</string>
 						<key>MacroUID</key>
-						<string>D53C0BC8-B95B-48BD-8C62-73A7803381E1</string>
+						<string>D870529B-93FB-402A-80C1-FD041B33748E</string>
+						<key>Parameters</key>
+						<array/>
+						<key>ResultVariable</key>
+						<string></string>
+						<key>TimeOutAbortsMacro</key>
+						<true/>
+					</dict>
+					<dict>
+						<key>ActionUID</key>
+						<integer>15410679</integer>
+						<key>MacroActionType</key>
+						<string>ExecuteSubroutine</string>
+						<key>MacroUID</key>
+						<string>EC5131FC-0B13-4515-9501-CEB84A9F0655</string>
 						<key>Parameters</key>
 						<array/>
 						<key>ResultVariable</key>
@@ -381,7 +461,7 @@
 						<key>ActionName</key>
 						<string>Done Notification ✅</string>
 						<key>ActionUID</key>
-						<integer>16203728</integer>
+						<integer>15410680</integer>
 						<key>MacroActionType</key>
 						<string>Notification</string>
 						<key>SoundName</key>
@@ -395,17 +475,17 @@
 					</dict>
 				</array>
 				<key>CreationDate</key>
-				<real>763183370.03760397</real>
+				<real>743722929.47859502</real>
 				<key>CustomIconData</key>
 				<string>KMEC=Circle=KMCOLOR:252,19,60,0=🔫=86=0=10=1=KMCOLOR:0,0,0,255</string>
 				<key>ModificationDate</key>
-				<real>763183820.77803802</real>
+				<real>743731584.71668005</real>
 				<key>Name</key>
 				<string>08)Pack Hour</string>
 				<key>Triggers</key>
 				<array/>
 				<key>UID</key>
-				<string>18D0ECCD-716E-49E5-9B00-7CFD0A4B7E39</string>
+				<string>01FDD61A-FA76-49EE-AA9E-9465ED635935</string>
 			</dict>
 			<dict>
 				<key>Actions</key>
@@ -414,7 +494,7 @@
 						<key>Action</key>
 						<string>ByPasting</string>
 						<key>ActionUID</key>
-						<integer>16203729</integer>
+						<integer>16176052</integer>
 						<key>MacroActionType</key>
 						<string>InsertText</string>
 						<key>Text</key>
@@ -422,11 +502,11 @@
 					</dict>
 					<dict>
 						<key>ActionUID</key>
-						<integer>16203747</integer>
+						<integer>16176054</integer>
 						<key>MacroActionType</key>
 						<string>ExecuteSubroutine</string>
 						<key>MacroUID</key>
-						<string>D53C0BC8-B95B-48BD-8C62-73A7803381E1</string>
+						<string>EC5131FC-0B13-4515-9501-CEB84A9F0655</string>
 						<key>Parameters</key>
 						<array/>
 						<key>ResultVariable</key>
@@ -438,7 +518,7 @@
 						<key>ActionName</key>
 						<string>Done Notification ✅</string>
 						<key>ActionUID</key>
-						<integer>16203791</integer>
+						<integer>16176055</integer>
 						<key>MacroActionType</key>
 						<string>Notification</string>
 						<key>SoundName</key>
@@ -448,21 +528,21 @@
 						<key>Text</key>
 						<string></string>
 						<key>Title</key>
-						<string>✅ Queue - (200K - 500k)</string>
+						<string>✅ Queue - UNSIGNED Rappers</string>
 					</dict>
 				</array>
 				<key>CreationDate</key>
-				<real>763183370.03761995</real>
+				<real>757044365.17993796</real>
 				<key>CustomIconData</key>
 				<string>KMEC=Circle=KMCOLOR:252,19,60,0=🎧=86=0=10=1=KMCOLOR:0,0,0,255</string>
 				<key>ModificationDate</key>
-				<real>763183776.261343</real>
+				<real>757044479.29803097</real>
 				<key>Name</key>
 				<string>01)Male Rappers (200K - 500k)</string>
 				<key>Triggers</key>
 				<array/>
 				<key>UID</key>
-				<string>91ADA16A-61A7-4A8E-B94C-6C5F64093036</string>
+				<string>069EE968-CE8D-4F2E-918A-64E4F792FA9C</string>
 			</dict>
 			<dict>
 				<key>Actions</key>
@@ -471,7 +551,7 @@
 						<key>Action</key>
 						<string>ByPasting</string>
 						<key>ActionUID</key>
-						<integer>16203731</integer>
+						<integer>16176056</integer>
 						<key>MacroActionType</key>
 						<string>InsertText</string>
 						<key>Text</key>
@@ -479,11 +559,27 @@
 					</dict>
 					<dict>
 						<key>ActionUID</key>
-						<integer>16203811</integer>
+						<integer>16176057</integer>
+						<key>IsActive</key>
+						<false/>
 						<key>MacroActionType</key>
 						<string>ExecuteSubroutine</string>
 						<key>MacroUID</key>
-						<string>D53C0BC8-B95B-48BD-8C62-73A7803381E1</string>
+						<string>D870529B-93FB-402A-80C1-FD041B33748E</string>
+						<key>Parameters</key>
+						<array/>
+						<key>ResultVariable</key>
+						<string></string>
+						<key>TimeOutAbortsMacro</key>
+						<true/>
+					</dict>
+					<dict>
+						<key>ActionUID</key>
+						<integer>16176058</integer>
+						<key>MacroActionType</key>
+						<string>ExecuteSubroutine</string>
+						<key>MacroUID</key>
+						<string>EC5131FC-0B13-4515-9501-CEB84A9F0655</string>
 						<key>Parameters</key>
 						<array/>
 						<key>ResultVariable</key>
@@ -495,7 +591,7 @@
 						<key>ActionName</key>
 						<string>Done Notification ✅</string>
 						<key>ActionUID</key>
-						<integer>16203733</integer>
+						<integer>16176059</integer>
 						<key>MacroActionType</key>
 						<string>Notification</string>
 						<key>SoundName</key>
@@ -509,82 +605,25 @@
 					</dict>
 				</array>
 				<key>CreationDate</key>
-				<real>763183370.03763402</real>
+				<real>757044698.12400103</real>
 				<key>CustomIconData</key>
 				<string>KMEC=Circle=KMCOLOR:252,19,60,0=💅🏾=86=0=10=1=KMCOLOR:0,0,0,255</string>
 				<key>ModificationDate</key>
-				<real>763183817.25827706</real>
+				<real>757044854.28274298</real>
 				<key>Name</key>
 				<string>07)Female Rappers (200K - 500k)</string>
 				<key>Triggers</key>
 				<array/>
 				<key>UID</key>
-				<string>C2F7591D-7C14-4A77-A6AA-226AD3303774</string>
-			</dict>
-			<dict>
-				<key>Actions</key>
-				<array>
-					<dict>
-						<key>Action</key>
-						<string>ByPasting</string>
-						<key>ActionUID</key>
-						<integer>16251140</integer>
-						<key>MacroActionType</key>
-						<string>InsertText</string>
-						<key>Text</key>
-						<string>🎧 Queue - Female Rappers (500k+) - MAJOR</string>
-					</dict>
-					<dict>
-						<key>ActionUID</key>
-						<integer>16251141</integer>
-						<key>MacroActionType</key>
-						<string>ExecuteSubroutine</string>
-						<key>MacroUID</key>
-						<string>D53C0BC8-B95B-48BD-8C62-73A7803381E1</string>
-						<key>Parameters</key>
-						<array/>
-						<key>ResultVariable</key>
-						<string></string>
-						<key>TimeOutAbortsMacro</key>
-						<true/>
-					</dict>
-					<dict>
-						<key>ActionName</key>
-						<string>Done Notification ✅</string>
-						<key>ActionUID</key>
-						<integer>16251142</integer>
-						<key>MacroActionType</key>
-						<string>Notification</string>
-						<key>SoundName</key>
-						<string></string>
-						<key>Subtitle</key>
-						<string></string>
-						<key>Text</key>
-						<string></string>
-						<key>Title</key>
-						<string>✅ Queue - Female Rappers</string>
-					</dict>
-				</array>
-				<key>CreationDate</key>
-				<real>769734031.58315504</real>
-				<key>CustomIconData</key>
-				<string>KMEC=Circle=KMCOLOR:252,19,60,0=💅🏾=86=0=10=1=KMCOLOR:0,0,0,255</string>
-				<key>ModificationDate</key>
-				<real>769734048.92032099</real>
-				<key>Name</key>
-				<string>07)Female Rappers (500k+)</string>
-				<key>Triggers</key>
-				<array/>
-				<key>UID</key>
-				<string>CF9519BC-0407-4DF1-8936-D751C3D48AF6</string>
+				<string>56118EB3-491E-4A61-BACE-1B22F0F95F25</string>
 			</dict>
 		</array>
 		<key>Modifiers</key>
 		<integer>0</integer>
 		<key>Name</key>
-		<string>Spotify - Palette_Queues [Bulk Add]</string>
+		<string>Tidal - Palette_Queues </string>
 		<key>PaletteUnderMouse</key>
-		<false/>
+		<true/>
 		<key>Targeting</key>
 		<dict>
 			<key>Targeting</key>
@@ -599,14 +638,14 @@
 			<key>Size</key>
 			<integer>22</integer>
 			<key>Theme</key>
-			<string>Red Night</string>
+			<string>Gemmell Purple</string>
 			<key>UseDefaultInstead</key>
 			<false/>
 		</dict>
 		<key>ToggleMacroUID</key>
-		<string>29D1057D-C50B-40FA-AA16-8A99B8742784</string>
+		<string>9A62274B-8418-41EE-89D3-A3295FDD2253</string>
 		<key>UID</key>
-		<string>9C566F16-84F4-4552-9130-BF85FF472995</string>
+		<string>2FCE78CE-AA77-4FAC-9426-7672FCDF385F</string>
 	</dict>
 </array>
 </plist>

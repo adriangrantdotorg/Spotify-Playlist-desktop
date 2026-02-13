@@ -32,7 +32,8 @@ async function init() {
 async function fetchPlaylists() {
     try {
         const isTracker = document.body.classList.contains('tracker-page');
-        const endpoint = isTracker ? '/api/tracker-playlists' : '/api/playlists';
+        const isQueue = document.body.classList.contains('queue-page');
+        const endpoint = isTracker ? '/api/tracker-playlists' : (isQueue ? '/api/queue-playlists' : '/api/playlists');
         
         const res = await fetch(endpoint);
         
@@ -149,14 +150,28 @@ async function checkPlaylists(trackUri) {
 }
 
 function updateTrackInfo(track) {
-    const title = document.getElementById('track-title');
+    const isQueue = document.body.classList.contains('queue-page');
+    
+    // Get elements based on page type
+    const title = document.getElementById('track-title') || document.getElementById('album-name');
     const artist = document.getElementById('artist-name');
+    const albumCover = document.getElementById('album-cover');
     const visualizerBars = document.querySelectorAll('.bar');
     const nothingPlayingMsg = document.getElementById('nothing-playing');
     
     if (track) {
-        title.textContent = track.name;
-        artist.textContent = track.artist;
+        if (isQueue) {
+            // Queue page: show album name and cover
+            if (title) title.textContent = track.album || 'Unknown Album';
+            if (albumCover && track.album_cover) {
+                albumCover.src = track.album_cover;
+                albumCover.style.display = 'block';
+            }
+        } else {
+            // Other pages: show track title and artist
+            if (title) title.textContent = track.name;
+            if (artist) artist.textContent = track.artist;
+        }
         
         if (track.is_playing) {
             visualizerBars.forEach(b => b.style.display = 'block');
@@ -166,8 +181,13 @@ function updateTrackInfo(track) {
             nothingPlayingMsg.style.display = 'block';
         }
     } else {
-        title.textContent = "Not Playing";
-        artist.textContent = "Play a song on Spotify";
+        if (isQueue) {
+            if (title) title.textContent = "Not Playing";
+            if (albumCover) albumCover.style.display = 'none';
+        } else {
+            if (title) title.textContent = "Not Playing";
+            if (artist) artist.textContent = "Play a song on Spotify";
+        }
         visualizerBars.forEach(b => b.style.display = 'none');
         nothingPlayingMsg.style.display = 'block';
         activePlaylistsMap.clear();
@@ -180,11 +200,12 @@ function renderPlaylists() {
     grid.innerHTML = '';
     
     const isTracker = document.body.classList.contains('tracker-page');
+    const isQueue = document.body.classList.contains('queue-page');
 
     // Helper to create item
     const createItem = (playlist) => {
-        // Handle DIVIDER for Tracker
-        if (isTracker && playlist.is_divider) {
+        // Handle DIVIDER for Tracker and Queue
+        if ((isTracker || isQueue) && playlist.is_divider) {
             const div = document.createElement('div');
             div.className = 'section-divider-green';
             return div;
@@ -213,18 +234,18 @@ function renderPlaylists() {
         return item;
     };
 
-    if (isTracker) {
-        // Tracker Logic: Linear Rendering, Strict Order
-        const trackerGroup = document.createElement('div');
-        trackerGroup.className = 'tracker-list'; // We might need css for this, but column is default
-        trackerGroup.style.display = 'flex';
-        trackerGroup.style.flexDirection = 'column';
-        trackerGroup.style.gap = '8px';
+    if (isTracker || isQueue) {
+        // Tracker/Queue Logic: Linear Rendering, Strict Order
+        const linearGroup = document.createElement('div');
+        linearGroup.className = isTracker ? 'tracker-list' : 'queue-list';
+        linearGroup.style.display = 'flex';
+        linearGroup.style.flexDirection = 'column';
+        linearGroup.style.gap = '8px';
         
         allPlaylists.forEach(p => {
-             trackerGroup.appendChild(createItem(p));
+             linearGroup.appendChild(createItem(p));
         });
-        grid.appendChild(trackerGroup);
+        grid.appendChild(linearGroup);
 
     } else {
         // Standard Dashboard Logic: Split Active/Inactive
@@ -268,6 +289,7 @@ async function togglePlaylist(playlist) {
 
     const isCurrentlyActive = activePlaylistsMap.has(playlist.id);
     const action = isCurrentlyActive ? 'remove' : 'add';
+    const isQueue = document.body.classList.contains('queue-page');
 
     // Optimistic Update
     if (action === 'add') {
@@ -285,14 +307,22 @@ async function togglePlaylist(playlist) {
     renderPlaylists();
 
     try {
-        const res = await fetch('/api/playlist/toggle', {
+        // Use different endpoint based on page type
+        const endpoint = isQueue ? '/api/playlist/toggle-album' : '/api/playlist/toggle';
+        const requestBody = isQueue ? {
+            playlist_id: playlist.id,
+            album_id: currentTrack.album_id,
+            action: action
+        } : {
+            playlist_id: playlist.id,
+            track_uri: currentTrack.uri,
+            action: action
+        };
+
+        const res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                playlist_id: playlist.id,
-                track_uri: currentTrack.uri,
-                action: action
-            })
+            body: JSON.stringify(requestBody)
         });
         
         const data = await res.json();
@@ -303,6 +333,9 @@ async function togglePlaylist(playlist) {
             else activePlaylistsMap.add(playlist.id);
             renderPlaylists();
             alert("Failed to update playlist: " + data.error);
+        } else if (isQueue && data.track_count) {
+            // Show success message with track count for album operations
+            console.log(`${action === 'add' ? 'Added' : 'Removed'} ${data.track_count} tracks from album`);
         }
     } catch (e) {
         console.error("Error toggling:", e);

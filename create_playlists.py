@@ -14,7 +14,7 @@ except ImportError:
     sys.exit(1)
 
 # Configuration
-CSV_FILE = "Playlist to Create.csv"
+CSV_FILE = "Playlists to Create - Queues.csv"
 SCOPE = "playlist-modify-public"
 REDIRECT_URI = "http://127.0.0.1:8888/callback"
 
@@ -37,10 +37,6 @@ def read_playlists_from_csv(filepath):
     try:
         with open(filepath, mode='r', encoding='utf-8') as f:
             reader = csv.reader(f)
-            # Skip header if it exists
-            header = next(reader, None)
-            # Check if header looks like a header (optional, assuming yes based on file content)
-            
             for row in reader:
                 if row:
                     playlists.append(row[0].strip())
