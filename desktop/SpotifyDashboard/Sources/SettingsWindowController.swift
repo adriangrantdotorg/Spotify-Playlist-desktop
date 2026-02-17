@@ -2,6 +2,7 @@ import Cocoa
 
 protocol SettingsDelegate: AnyObject {
     func settingsDidChangeAppMode(menuBarMode: Bool)
+    func settingsDidChangeFloatOnTop(enabled: Bool)
 }
 
 class SettingsWindowController {
@@ -11,6 +12,7 @@ class SettingsWindowController {
     weak var delegate: SettingsDelegate?
 
     private var recorderViews: [DashboardPage: ShortcutRecorderView] = [:]
+    private var floatOnTopToggle: NSSwitch?
 
     init(hotkeyManager: HotkeyManager) {
         self.hotkeyManager = hotkeyManager
@@ -23,7 +25,7 @@ class SettingsWindowController {
         }
 
         let win = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 340),
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 400),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -141,12 +143,27 @@ class SettingsWindowController {
         toggle.action = #selector(toggleAppMode(_:))
         container.addSubview(toggle)
 
+        yOffset -= rowHeight
+
+        // Float on Top toggle
+        let floatLabel = makeLabel("Float on Top", size: 14, bold: false)
+        floatLabel.frame = NSRect(x: padding, y: yOffset + 4, width: 200, height: 22)
+        container.addSubview(floatLabel)
+
+        let floatToggle = NSSwitch(frame: NSRect(x: 250, y: yOffset + 2, width: 50, height: 28))
+        let floatDefault = UserDefaults.standard.object(forKey: "floatOnTop") == nil ? true : UserDefaults.standard.bool(forKey: "floatOnTop")
+        floatToggle.state = floatDefault ? .on : .off
+        floatToggle.target = self
+        floatToggle.action = #selector(toggleFloatOnTop(_:))
+        container.addSubview(floatToggle)
+        self.floatOnTopToggle = floatToggle
+
         yOffset -= 8
 
         // Explanation text
         yOffset -= 32
         let explainLabel = makeLabel(
-            "Menu Bar mode hides the app from the Dock and shows\na status bar icon. The app runs as a background utility.",
+            "Menu Bar mode hides the app from the Dock.\nFloat on Top keeps the window above all others.",
             size: 11,
             bold: false
         )
@@ -170,6 +187,17 @@ class SettingsWindowController {
         let menuBarMode = sender.state == .on
         UserDefaults.standard.set(menuBarMode, forKey: "menuBarMode")
         delegate?.settingsDidChangeAppMode(menuBarMode: menuBarMode)
+    }
+
+    @objc private func toggleFloatOnTop(_ sender: NSSwitch) {
+        let enabled = sender.state == .on
+        UserDefaults.standard.set(enabled, forKey: "floatOnTop")
+        delegate?.settingsDidChangeFloatOnTop(enabled: enabled)
+    }
+
+    /// Called externally when the View menu toggle changes, to keep the Settings switch in sync
+    func updateFloatOnTopState(_ enabled: Bool) {
+        floatOnTopToggle?.state = enabled ? .on : .off
     }
 
     // MARK: - Helpers

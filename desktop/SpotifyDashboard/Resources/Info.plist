@@ -19,6 +19,8 @@
     <string>SPDH</string>
     <key>CFBundleExecutable</key>
     <string>SpotifyDashboard</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
 
     <!-- macOS Config -->
     <key>LSMinimumSystemVersion</key>

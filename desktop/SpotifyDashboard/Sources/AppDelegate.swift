@@ -16,6 +16,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         set { UserDefaults.standard.set(newValue, forKey: "menuBarMode") }
     }
 
+    private var isFloatOnTop: Bool {
+        get {
+            // Default to true if never set
+            if UserDefaults.standard.object(forKey: "floatOnTop") == nil { return true }
+            return UserDefaults.standard.bool(forKey: "floatOnTop")
+        }
+        set { UserDefaults.standard.set(newValue, forKey: "floatOnTop") }
+    }
+
     // MARK: - Application Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -79,7 +88,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         mainWindow.title = "Spotify Dashboard"
-        mainWindow.level = .floating
+        mainWindow.level = isFloatOnTop ? .floating : .normal
         mainWindow.isReleasedWhenClosed = false
         mainWindow.delegate = self
         mainWindow.titlebarAppearsTransparent = true
@@ -158,6 +167,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func setFloatOnTop(_ enabled: Bool) {
+        isFloatOnTop = enabled
+        mainWindow.level = enabled ? .floating : .normal
+    }
+
     func setMenuBarMode(_ enabled: Bool) {
         isMenuBarMode = enabled
         applyAppMode()
@@ -193,6 +207,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         viewMenu.addItem(withTitle: "Queue", action: #selector(navigateToQueue), keyEquivalent: "3")
         viewMenu.addItem(NSMenuItem.separator())
         viewMenu.addItem(withTitle: "Reload Page", action: #selector(reloadPage), keyEquivalent: "r")
+        viewMenu.addItem(NSMenuItem.separator())
+        let floatItem = NSMenuItem(title: "Float on Top", action: #selector(toggleFloatOnTop(_:)), keyEquivalent: "")
+        floatItem.state = isFloatOnTop ? .on : .off
+        viewMenu.addItem(floatItem)
         viewMenuItem.submenu = viewMenu
         mainMenu.addItem(viewMenuItem)
 
@@ -226,6 +244,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func reloadPage() {
         webViewController.reload()
     }
+
+    @objc func toggleFloatOnTop(_ sender: NSMenuItem) {
+        let newState = !isFloatOnTop
+        setFloatOnTop(newState)
+        sender.state = newState ? .on : .off
+        settingsWindowController.updateFloatOnTopState(newState)
+    }
 }
 
 // MARK: - NSWindowDelegate
@@ -251,6 +276,15 @@ extension AppDelegate: HotkeyManagerDelegate {
 extension AppDelegate: SettingsDelegate {
     func settingsDidChangeAppMode(menuBarMode: Bool) {
         setMenuBarMode(menuBarMode)
+    }
+
+    func settingsDidChangeFloatOnTop(enabled: Bool) {
+        setFloatOnTop(enabled)
+        // Update the View menu checkmark
+        if let viewMenu = NSApp.mainMenu?.item(withTitle: "View")?.submenu,
+           let floatItem = viewMenu.item(withTitle: "Float on Top") {
+            floatItem.state = enabled ? .on : .off
+        }
     }
 }
 

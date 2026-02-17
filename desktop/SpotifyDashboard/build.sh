@@ -36,6 +36,11 @@ cp "$RESOURCES_DIR/Info.plist" "$APP_BUNDLE/Contents/"
 # Copy AppleScript dictionary
 cp "$RESOURCES_DIR/SpotifyDashboard.sdef" "$APP_BUNDLE/Contents/Resources/"
 
+# Copy app icon
+if [ -f "$RESOURCES_DIR/AppIcon.icns" ]; then
+    cp "$RESOURCES_DIR/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/"
+fi
+
 # Create PkgInfo
 echo -n "APPLSPDH" > "$APP_BUNDLE/Contents/PkgInfo"
 

@@ -149,3 +149,47 @@ python3 app.py
 Then open **http://127.0.0.1:8888** in your browser.
 
 On first run, you'll be redirected to Spotify to log in. After that, the auth token is cached locally.
+
+---
+
+## Automation & AppleScript Support
+
+The app behaves like a native Mac app and supports AppleScript commands for advanced control and automation (e.g., via Raycast, Alfred, or Keyboard Maestro).
+
+### Toggle Commands
+
+Each command works as a smart toggle:
+
+- If the app is **hidden**, it shows and navigates to that page.
+- If the app is **already visible** on that page, it hides the app.
+- If the app is **visible on a different page**, it navigates to the requested page without hiding.
+
+**Toggle Playlists Page**
+
+```applescript
+tell application "Spotify Dashboard" to toggle page "playlist"
+```
+
+**Toggle Tracker Page**
+
+```applescript
+tell application "Spotify Dashboard" to toggle page "tracker"
+```
+
+**Toggle Queue Page**
+
+```applescript
+tell application "Spotify Dashboard" to toggle page "queue"
+```
+
+### Explicit Control
+
+You can also use `show page` and `hide app` separately if you want explicit control:
+
+```applescript
+-- Show only (never hides)
+tell application "Spotify Dashboard" to show page "playlist"
+
+-- Hide only (never shows)
+tell application "Spotify Dashboard" to hide app
+```

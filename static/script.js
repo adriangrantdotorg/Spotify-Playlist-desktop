@@ -36,8 +36,8 @@ function generateWaveformBars() {
         bar.className = 'bar';
 
         // Randomize animation properties for organic look
-        const minH = 3 + Math.random() * 4;        // 3-7px minimum
-        const maxH = 14 + Math.random() * 20;       // 14-34px maximum
+        const minH = 2 + Math.random() * 3;        // 2-5px minimum
+        const maxH = 10 + Math.random() * 18;       // 10-28px maximum
         const duration = 0.4 + Math.random() * 0.6;  // 0.4-1.0s
         const delay = Math.random() * -1.0;           // stagger start
 
@@ -372,9 +372,7 @@ function renderPlaylists() {
         // Tracker/Queue Logic: Linear Rendering, Strict Order
         const linearGroup = document.createElement('div');
         linearGroup.className = isTracker ? 'tracker-list' : 'queue-list';
-        linearGroup.style.display = 'flex';
-        linearGroup.style.flexDirection = 'column';
-        linearGroup.style.gap = '8px';
+        // Styles moved to CSS for full-page scaling
         
         allPlaylists.forEach(p => {
              linearGroup.appendChild(createItem(p));
@@ -476,8 +474,22 @@ async function togglePlaylist(playlist) {
         // Revert on failure
         if (action === 'add') activePlaylistsMap.delete(playlist.id);
         else activePlaylistsMap.add(playlist.id);
-        renderPlaylists();
         alert("Network error.");
     }
 }
+
+// Fade Animation Handling
+document.addEventListener('visibilitychange', () => {
+    const container = document.querySelector('.app-container');
+    if (container) {
+        if (document.hidden) {
+            // Prepare for next entry: reset animation state so user sees fade-in on return
+            container.style.animation = 'none';
+            container.style.opacity = '0';
+        } else {
+            // Re-trigger the calm fade-in
+            container.style.animation = 'calmFadeIn 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards';
+        }
+    }
+});
 
