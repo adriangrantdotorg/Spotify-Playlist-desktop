@@ -32,7 +32,7 @@ body {
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  background: url("Images/Playlists/black green.png") no-repeat center center
+  background: url("images/Playlists/black green.png") no-repeat center center
     fixed;
   background-size: cover;
 }
@@ -346,7 +346,7 @@ body {
 
 /* Tracker Page Specific Styles */
 body.tracker-page {
-  background: url("Images/Tracker/purple.png") no-repeat center center fixed;
+  background: url("images/Tracker/purple.png") no-repeat center center fixed;
   background-size: cover;
 }
 
@@ -367,7 +367,7 @@ body.tracker-page .app-container {
 
 /* Playlists Page Specific Styles */
 body.playlists-page {
-  background: url("Images/Playlists/green.png") no-repeat center center fixed;
+  background: url("images/Playlists/green.png") no-repeat center center fixed;
   background-size: cover;
 }
 
@@ -377,7 +377,7 @@ body.playlists-page .app-container {
 
 /* Queue Page Specific Styles */
 body.queue-page {
-  background: url("Images/Queue/orange.png") no-repeat center center fixed;
+  background: url("images/Queue/orange.png") no-repeat center center fixed;
   background-size: cover;
 }
 
