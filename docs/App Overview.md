@@ -8,7 +8,7 @@ You can then add or remove the track from any playlist with a single click — n
 
 ---
 
-## The Two Pages
+## The Three Pages
 
 ### 🟢 Playlists Page (`/`)
 
@@ -38,7 +38,9 @@ This tells you: _"You could add this song to any of these playlists."_
 #### Clicking a Playlist
 
 - **Click an inactive playlist** → adds the track to that playlist **and** likes the song
-- **Click an active playlist** → removes the track from that playlist (does **not** unlike it)
+- **Click an active playlist** → removes the track from that playlist
+  - If the track is **not in any other playlists** on any page → **unlikes the song** automatically
+  - If the track **exists in other playlists** → keeps the song liked
 - Either action also copies the Spotify playlist name to your clipboard
 
 ---
@@ -49,42 +51,89 @@ A separate page for **monitoring artists** rather than sorting music. The Tracke
 
 Where the Playlists page answers _"Which playlists is this song in?"_, the Tracker page answers _"Is this artist already being tracked in my A&R playlists?"_
 
-Same click-to-toggle behavior as the Playlists page.
+#### Clicking a Playlist
+
+- **Click an inactive playlist** → adds the track to that playlist **and** likes the song
+- **Click an active playlist** → removes the track from that playlist
+  - If the track is **not in any other playlists** on any page → **unlikes the song** automatically
+  - If the track **exists in other playlists** → keeps the song liked
+
+---
+
+### 🟠 Queue Page (`/queue`)
+
+An **album-based** playlist management page. Instead of showing the currently playing track, this page displays the **currently playing album** with its cover art.
+
+The Queue page uses a **single-column vertical layout** similar to the Tracker page, with divider lines separating sections.
+
+#### Album-Based Operations
+
+- **Click an inactive playlist** → adds **all tracks from the current album** to that playlist
+  - Tracks are added but **NOT automatically liked** (unlike the other pages)
+- **Click an active playlist** → removes **all tracks from the current album** from that playlist
+  - Tracks are removed but **NOT automatically unliked**
+
+This page is designed for bulk operations when you want to add or remove entire albums at once.
 
 ---
 
 ## The Header
 
-Both pages share a compact header bar at the top that shows:
+All three pages share a compact header bar at the top that shows:
 
-| Element                | Meaning                                                |
-| ---------------------- | ------------------------------------------------------ |
-| **Track title**        | The song currently playing (or most recently played)   |
-| **Artist name**        | Below the track title                                  |
-| **Animated bars**      | Five small bars animate when music is actively playing |
-| **"Nothing Playing…"** | Shown when Spotify is paused or idle                   |
+| Element                | Meaning                                                       |
+| ---------------------- | ------------------------------------------------------------- |
+| **Track/Album title**  | The song or album currently playing (or most recently played) |
+| **Artist name**        | Below the track/album title                                   |
+| **Album cover**        | Displayed on Queue page only                                  |
+| **Animated bars**      | Five small bars animate when music is actively playing        |
+| **"Nothing Playing…"** | Shown when Spotify is paused or idle                          |
 
 The dashboard automatically polls Spotify every **10 seconds** for track changes (slows to 60s when the browser tab is in the background).
 
 ---
 
+## Smart Unliking Behavior
+
+The app intelligently manages your Liked Songs to keep them in sync with your playlists:
+
+**When adding a track** (Playlists & Tracker pages only):
+
+- ✅ Track is added to the selected playlist
+- ✅ Track is automatically liked in Spotify
+
+**When removing a track** (Playlists & Tracker pages only):
+
+- ✅ Track is removed from the selected playlist
+- 🔍 App checks if the track exists in **any other playlists** across all three pages
+- If **NOT in any playlists** → ❌ Track is automatically unliked
+- If **still in other playlists** → ✅ Track remains liked
+
+**Queue page** (album operations):
+
+- ➕ Adding albums: Tracks are added but **NOT liked**
+- ➖ Removing albums: Tracks are removed but **NOT unliked**
+
+---
+
 ## Configuration
 
-Playlists are configured via two CSV files in the project root:
+Playlists are configured via CSV files in `data/csv/`:
 
-| File                       | Controls            | Format                                              |
-| -------------------------- | ------------------- | --------------------------------------------------- |
-| `Playlists to Display.csv` | Playlists page grid | `Dashboard Name, Spotify Playlist Name`             |
-| `Tracker to Display.csv`   | Tracker page list   | Same format, with `DIVIDER` rows for section breaks |
+| File                       | Controls            | Format                                               |
+| -------------------------- | ------------------- | ---------------------------------------------------- |
+| `Playlists to Display.csv` | Playlists page grid | `Dashboard Name, Spotify Playlist Name`              |
+| `Tracker to Display.csv`   | Tracker page list   | Same format, with `DIVIDER` rows for section breaks  |
+| `Queue to Display.csv`     | Queue page list     | `Name, Spotify Playlist Name` with `LINE BREAK` rows |
 
-The **Dashboard Name** is the short label shown in the UI. The **Spotify Playlist Name** must exactly match the playlist name in your Spotify library.
+The **Dashboard Name** (or **Name**) is the short label shown in the UI. The **Spotify Playlist Name** must exactly match the playlist name in your Spotify library.
 
 ---
 
 ## Running It
 
 ```bash
-python app.py
+python3 app.py
 ```
 
 Then open **http://127.0.0.1:8888** in your browser.
