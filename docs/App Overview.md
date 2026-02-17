@@ -140,13 +140,30 @@ The **Dashboard Name** (or **Name**) is the short label shown in the UI. The **S
 
 ---
 
-## Running It
+## Native Desktop App (v1.0.1)
+
+The app is now wrapped as a native macOS application (`Spotify Dashboard.app`) for better integration:
+
+- 🖥️ **Dock & App Switcher Support**: Proper app icon and process management.
+- ⌨️ **Global Hotkeys**: Supports system-wide shortcuts.
+- 🍎 **AppleScript Control**: Full automation support.
+
+### Running the App
+
+**Option 1: Native App (Recommended)**
+Double-click `Spotify Dashboard.app` in the `desktop/SpotifyDashboard/build/` folder, or run:
+
+```bash
+./desktop/run.sh
+```
+
+**Option 2: Python Direct (Dev Mode)**
 
 ```bash
 python3 app.py
 ```
 
-Then open **http://127.0.0.1:8888** in your browser.
+Then open **http://127.0.0.1:8888** in your browser (if using Option 2).
 
 On first run, you'll be redirected to Spotify to log in. After that, the auth token is cached locally.
 
