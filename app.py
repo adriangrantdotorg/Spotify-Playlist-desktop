@@ -572,9 +572,29 @@ def toggle_playlist():
             if playlist_id in playlist_tracks_cache:
                 if track_uri in playlist_tracks_cache[playlist_id]:
                     playlist_tracks_cache[playlist_id].remove(track_uri)
-                    
-            # 2. DO NOT Remove from Liked Songs (per requirements)
-            message = "Removed from playlist."
+            
+            # 2. Check if track exists in ANY other playlists on this page
+            # Combine all playlists (dashboard, tracker, queue)
+            all_playlists = dashboard_playlists + [p for p in tracker_playlists if not p.get('is_divider')] + [p for p in queue_playlists if not p.get('is_divider')]
+            
+            track_exists_elsewhere = False
+            for pl in all_playlists:
+                pid = pl['id']
+                # Skip the playlist we just removed from
+                if pid == playlist_id:
+                    continue
+                # Check if track exists in this playlist's cache
+                if pid in playlist_tracks_cache and track_uri in playlist_tracks_cache[pid]:
+                    track_exists_elsewhere = True
+                    break
+            
+            # If track doesn't exist in any other playlists, unlike it
+            if not track_exists_elsewhere:
+                track_id = track_uri.replace('spotify:track:', '')
+                sp.current_user_saved_tracks_delete([track_id])
+                message = "Removed from playlist and unliked (not in any other playlists)."
+            else:
+                message = "Removed from playlist."
             
         else:
             return jsonify({"error": "Invalid action"}), 400
