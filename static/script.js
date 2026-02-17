@@ -15,8 +15,45 @@ try {
 
 document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    generateWaveformBars();
     init();
 });
+
+/**
+ * Generate waveform bars dynamically in the .visualizer container
+ */
+function generateWaveformBars() {
+    const visualizer = document.querySelector('.visualizer');
+    if (!visualizer) return;
+
+    // Remove any existing static bars
+    visualizer.querySelectorAll('.bar').forEach(b => b.remove());
+
+    const nothingPlaying = document.getElementById('nothing-playing');
+    const barCount = 35;
+    for (let i = 0; i < barCount; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+
+        // Randomize animation properties for organic look
+        const minH = 3 + Math.random() * 4;        // 3-7px minimum
+        const maxH = 14 + Math.random() * 20;       // 14-34px maximum
+        const duration = 0.4 + Math.random() * 0.6;  // 0.4-1.0s
+        const delay = Math.random() * -1.0;           // stagger start
+
+        bar.style.setProperty('--bar-min', `${minH}px`);
+        bar.style.setProperty('--bar-max', `${maxH}px`);
+        bar.style.height = `${minH}px`;
+        bar.style.animationDuration = `${duration}s`;
+        bar.style.animationDelay = `${delay}s`;
+
+        // Insert bars before the "Nothing Playing" message
+        visualizer.insertBefore(bar, nothingPlaying);
+    }
+
+    // Start in hidden state
+    visualizer.classList.add('is-hidden');
+}
 
 function handleVisibilityChange() {
     if (document.hidden) {
@@ -231,14 +268,14 @@ async function checkPlaylists(trackUri) {
 
 function updateTrackInfo(track) {
     const isQueue = document.body.classList.contains('queue-page');
-    
+
     // Get elements based on page type
     const title = document.getElementById('track-title') || document.getElementById('album-name');
     const artist = document.getElementById('artist-name');
     const albumCover = document.getElementById('album-cover');
-    const visualizerBars = document.querySelectorAll('.bar');
+    const visualizer = document.querySelector('.visualizer');
     const nothingPlayingMsg = document.getElementById('nothing-playing');
-    
+
     if (track) {
         // Universal: Update Album Cover
         if (albumCover && track.album_cover) {
@@ -261,13 +298,18 @@ function updateTrackInfo(track) {
                 .then(color => applyDynamicBackground(color))
                 .catch(err => console.warn('Color extraction failed:', err));
         }
-        
-        if (track.is_playing) {
-            visualizerBars.forEach(b => b.style.display = 'block');
-            nothingPlayingMsg.style.display = 'none';
-        } else {
-            visualizerBars.forEach(b => b.style.display = 'none');
-            nothingPlayingMsg.style.display = 'block';
+
+        if (visualizer) {
+            visualizer.classList.remove('is-hidden');
+            if (track.is_playing) {
+                visualizer.classList.add('is-playing');
+                visualizer.classList.remove('is-paused');
+                nothingPlayingMsg.style.display = 'none';
+            } else {
+                visualizer.classList.remove('is-playing');
+                visualizer.classList.add('is-paused');
+                nothingPlayingMsg.style.display = 'none';
+            }
         }
     } else {
         if (isQueue) {
@@ -277,7 +319,10 @@ function updateTrackInfo(track) {
             if (title) title.textContent = "Not Playing";
             if (artist) artist.textContent = "Play a song on Spotify";
         }
-        visualizerBars.forEach(b => b.style.display = 'none');
+        if (visualizer) {
+            visualizer.classList.remove('is-playing', 'is-paused');
+            visualizer.classList.add('is-hidden');
+        }
         nothingPlayingMsg.style.display = 'block';
         activePlaylistsMap.clear();
         renderPlaylists();

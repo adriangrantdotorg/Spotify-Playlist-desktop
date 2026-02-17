@@ -191,6 +191,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         viewMenu.addItem(withTitle: "Playlists", action: #selector(navigateToPlaylists), keyEquivalent: "1")
         viewMenu.addItem(withTitle: "Tracker", action: #selector(navigateToTracker), keyEquivalent: "2")
         viewMenu.addItem(withTitle: "Queue", action: #selector(navigateToQueue), keyEquivalent: "3")
+        viewMenu.addItem(NSMenuItem.separator())
+        viewMenu.addItem(withTitle: "Reload Page", action: #selector(reloadPage), keyEquivalent: "r")
         viewMenuItem.submenu = viewMenu
         mainMenu.addItem(viewMenuItem)
 
@@ -219,6 +221,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func navigateToQueue() {
         showPage(.queue)
+    }
+
+    @objc func reloadPage() {
+        webViewController.reload()
     }
 }
 
