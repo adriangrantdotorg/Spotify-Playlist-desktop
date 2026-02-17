@@ -623,13 +623,7 @@ def toggle_album_playlist():
             if playlist_id in playlist_tracks_cache:
                 playlist_tracks_cache[playlist_id].update(track_uris)
             
-            # Like all songs
-            track_ids = [uri.replace('spotify:track:', '') for uri in track_uris]
-            for i in range(0, len(track_ids), 50):
-                batch = track_ids[i:i+50]
-                sp.current_user_saved_tracks_add(batch)
-            
-            message = f"Added {len(track_uris)} tracks from album to playlist and Liked Songs."
+            message = f"Added {len(track_uris)} tracks from album to playlist."
         
         elif action == 'remove':
             # Remove all tracks from playlist
