@@ -14,7 +14,7 @@ except ImportError:
     sys.exit(1)
 
 # Configuration
-CSV_FILE = "Playlists to Create - Queues.csv"
+CSV_FILE = "../data/archived/Playlists to Create - Queues.csv"
 SCOPE = "playlist-modify-public"
 REDIRECT_URI = "http://127.0.0.1:8888/callback"
 

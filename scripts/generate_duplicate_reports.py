@@ -29,16 +29,21 @@ for p in playlists:
 duplicates = {name: ids for name, ids in playlist_name_map.items() if len(ids) > 1}
 
 # Process each CSV file
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+data_csv_dir = os.path.abspath(os.path.join(current_dir, "..", "data", "csv"))
+data_archived_dir = os.path.abspath(os.path.join(current_dir, "..", "data", "archived"))
+
 csv_configs = [
     {
-        "input_file": "Playlists to Display.csv",
-        "output_file": "Playlists Duplicates.csv",
+        "input_file": os.path.join(data_csv_dir, "Playlists to Display.csv"),
+        "output_file": os.path.join(data_archived_dir, "Playlists Duplicates.csv"),
         "dashboard_col": "Dashboard Name",
         "spotify_col": "Spotify Playlist Name"
     },
     {
-        "input_file": "Tracker to Display.csv",
-        "output_file": "Tracker Duplicates.csv",
+        "input_file": os.path.join(data_csv_dir, "Tracker to Display.csv"),
+        "output_file": os.path.join(data_archived_dir, "Tracker Duplicates.csv"),
         "dashboard_col": "Dashboard Name",
         "spotify_col": "Spotify Playlist Name"
     }

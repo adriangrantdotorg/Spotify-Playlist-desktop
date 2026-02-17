@@ -36,10 +36,14 @@ for name, ids in duplicates.items():
     print()
 
 # Now check each CSV file
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+data_csv_dir = os.path.abspath(os.path.join(current_dir, "..", "data", "csv"))
+
 csv_files = [
-    "Playlists to Display.csv",
-    "Tracker to Display.csv", 
-    "Queue to Display.csv"
+    os.path.join(data_csv_dir, "Playlists to Display.csv"),
+    os.path.join(data_csv_dir, "Tracker to Display.csv"), 
+    os.path.join(data_csv_dir, "Queue to Display.csv")
 ]
 
 print("\n" + "="*80)

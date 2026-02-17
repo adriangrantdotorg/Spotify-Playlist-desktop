@@ -12,10 +12,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__, static_folder='.')
+app = Flask(__name__, static_folder='static')
 
 # Configuration
-CSV_FILE = "Playlists to Display.csv"
+CSV_FILE = "data/csv/Playlists to Display.csv"
 SCOPE = "user-read-playback-state user-library-read user-library-modify playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private user-read-recently-played"
 
 # Spotify Auth Manager
@@ -146,11 +146,11 @@ def load_playlists():
 
 # Global list for Tracker Page
 tracker_playlists = []
-TRACKER_CSV_FILE = "Tracker to Display.csv"
+TRACKER_CSV_FILE = "data/csv/Tracker to Display.csv"
 
 # Global list for Queue Page
 queue_playlists = []
-QUEUE_CSV_FILE = "Queue to Display.csv"
+QUEUE_CSV_FILE = "data/csv/Queue to Display.csv"
 
 def load_tracker_playlists():
     global tracker_playlists
@@ -371,14 +371,14 @@ def index():
     auth_manager = get_auth_manager()
     if not auth_manager.validate_token(auth_manager.get_cached_token()):
         return redirect('/login')
-    return send_from_directory('.', 'playlists.html')
+    return send_from_directory('static', 'playlists.html')
 
 @app.route('/tracker')
 def tracker():
     auth_manager = get_auth_manager()
     if not auth_manager.validate_token(auth_manager.get_cached_token()):
         return redirect('/login')
-    return send_from_directory('.', 'tracker.html')
+    return send_from_directory('static', 'tracker.html')
 
 @app.route('/api/tracker-playlists')
 def get_tracker_playlists():
@@ -389,7 +389,7 @@ def queue():
     auth_manager = get_auth_manager()
     if not auth_manager.validate_token(auth_manager.get_cached_token()):
         return redirect('/login')
-    return send_from_directory('.', 'queue.html')
+    return send_from_directory('static', 'queue.html')
 
 @app.route('/api/queue-playlists')
 def get_queue_playlists():
@@ -415,7 +415,7 @@ def callback():
 
 @app.route('/<path:path>')
 def serve_static(path):
-    return send_from_directory('.', path)
+    return send_from_directory('static', path)
 
 @app.route('/api/current-track')
 def get_current_track():

@@ -1,21 +1,16 @@
 import plistlib
 import csv
 import os
-import re
+import html
 
 # Path definitions
 current_dir = os.path.dirname(os.path.abspath(__file__))
-# XML file path relative to the script location
-xml_relative_path = "Keyboard Maestro macro groups/Tracker.xml"
-xml_path = os.path.join(current_dir, xml_relative_path)
-csv_filename = "Tracker.csv"
-csv_path = os.path.join(current_dir, csv_filename)
+xml_filename = "Queues.xml"
+xml_path = os.path.abspath(os.path.join(current_dir, "..", "data", "xml", xml_filename))
+csv_filename = "Queue.csv"
+csv_path = os.path.abspath(os.path.join(current_dir, "..", "data", "csv", csv_filename))
 
 print(f"Reading XML from: {xml_path}")
-
-def clean_macro_name(name):
-    """Removes '⌨️ ' from the beginning of the string if present."""
-    return re.sub(r'^⌨️\s*', '', name)
 
 try:
     with open(xml_path, 'rb') as f:
@@ -28,7 +23,10 @@ try:
         if 'Macros' in item:
             for macro in item['Macros']:
                 macro_name = macro.get('Name', '')
-                clean_name = clean_macro_name(macro_name)
+                
+                # Skip separator macros (those with just dashes)
+                if '⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯' in macro_name:
+                    continue
                 
                 playlist_text = ""
                 # Find the 'InsertText' action
@@ -38,10 +36,15 @@ try:
                         playlist_text = action.get('Text', '')
                         break # Take the first InsertText action found
                 
-                if clean_name and playlist_text:
+                # Only add entries that have both a name and playlist text
+                if macro_name and playlist_text:
+                    # Decode HTML entities in both fields
+                    decoded_macro_name = html.unescape(macro_name)
+                    decoded_playlist_text = html.unescape(playlist_text)
+                    
                     extracted_data.append({
-                        "Keyboard Maestro macro name": clean_name,
-                        "Spotify Playlist Name": playlist_text
+                        "Keyboard Maestro macro name": decoded_macro_name,
+                        "Spotify Playlist Name": decoded_playlist_text
                     })
 
     # Write to CSV
