@@ -16,8 +16,14 @@
     <div class="app-container">
       <!-- Current Track Header -->
       <header class="current-track">
+        <img
+          id="album-cover"
+          class="album-cover"
+          src=""
+          alt="Album Cover"
+          style="display: none"
+        />
         <div class="track-info">
-          
           <h1 class="track-title" id="track-title">Loading...</h1>
           <h2 class="artist-name" id="artist-name">Loading...</h2>
         </div>
@@ -28,15 +34,19 @@
           <div class="bar"></div>
           <div class="bar"></div>
           <div class="bar"></div>
-          <div id="nothing-playing" class="nothing-playing" style="display: none;">Nothing Playing...</div>
+          <div
+            id="nothing-playing"
+            class="nothing-playing"
+            style="display: none"
+          >
+            Nothing Playing...
+          </div>
         </div>
       </header>
 
       <!-- Playlist Grid -->
       <main class="playlist-section">
-        <div class="grid-header">
-    
-        </div>
+        <div class="grid-header"></div>
         <div class="playlist-grid" id="playlist-grid">
           <!-- Playlist Items will be injected here by JS -->
         </div>

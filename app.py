@@ -9,6 +9,9 @@ from flask import Flask, jsonify, request, send_from_directory, redirect, sessio
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
+from PIL import Image
+import requests
+from io import BytesIO
 
 load_dotenv()
 
@@ -538,6 +541,34 @@ def check_playlists():
                 print(f"Error checking playlist {sname} live: {e}")
 
     return jsonify(active_ids)
+
+
+@app.route('/api/extract-color')
+def get_extracted_color():
+    url = request.args.get('url')
+    if not url:
+        return jsonify({'r': 0, 'g': 0, 'b': 0, 'error': 'No URL provided'})
+
+    try:
+        # Add User-Agent to avoid blocking
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'
+        }
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code != 200:
+             return jsonify({'r': 0, 'g': 0, 'b': 0, 'error': f"Failed to fetch image: {response.status_code}"})
+
+        img = Image.open(BytesIO(response.content))
+        # Resize to 1x1 to get average color
+        img = img.resize((1, 1)).convert('RGB')
+        color = img.getpixel((0, 0))
+        # Log success
+        print(f"Extracted color for {url}: {color}")
+        return jsonify({'r': color[0], 'g': color[1], 'b': color[2]})
+    except Exception as e:
+        print(f"Error extracting color: {e}")
+        return jsonify({'r': 0, 'g': 0, 'b': 0, 'error': str(e)})
 
 
 @app.route('/api/playlist/toggle', methods=['POST'])

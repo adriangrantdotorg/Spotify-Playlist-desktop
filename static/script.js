@@ -82,90 +82,34 @@ async function extractDominantColor(imageUrl, trackId) {
         return colorCache[trackId];
     }
 
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'Anonymous';
+    try {
+        const res = await fetch(`/api/extract-color?url=${encodeURIComponent(imageUrl)}`);
+        if (!res.ok) throw new Error('Network response was not ok');
         
-        img.onload = () => {
-            try {
-                // Create canvas to sample colors
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                
-                // Use smaller size for faster processing
-                const size = 100;
-                canvas.width = size;
-                canvas.height = size;
-                
-                // Draw image
-                ctx.drawImage(img, 0, 0, size, size);
-                
-                // Get image data
-                const imageData = ctx.getImageData(0, 0, size, size);
-                const data = imageData.data;
-                
-                // Sample colors and find dominant
-                const colorMap = {};
-                let maxCount = 0;
-                let dominantColor = { r: 0, g: 0, b: 0 };
-                
-                // Sample every 4th pixel for speed
-                for (let i = 0; i < data.length; i += 16) {
-                    const r = data[i];
-                    const g = data[i + 1];
-                    const b = data[i + 2];
-                    const a = data[i + 3];
-                    
-                    // Skip transparent pixels
-                    if (a < 128) continue;
-                    
-                    // Skip very dark or very light pixels (usually background/noise)
-                    const brightness = (r + g + b) / 3;
-                    if (brightness < 20 || brightness > 235) continue;
-                    
-                    // Bucket colors to reduce variation
-                    const bucketSize = 32;
-                    const key = `${Math.floor(r / bucketSize)},${Math.floor(g / bucketSize)},${Math.floor(b / bucketSize)}`;
-                    
-                    colorMap[key] = (colorMap[key] || 0) + 1;
-                    
-                    if (colorMap[key] > maxCount) {
-                        maxCount = colorMap[key];
-                        dominantColor = { r, g, b };
-                    }
-                }
-                
-                // Cache the result
-                colorCache[trackId] = dominantColor;
-                
-                // Save to localStorage (limit cache size to 100 entries)
-                try {
-                    const cacheKeys = Object.keys(colorCache);
-                    if (cacheKeys.length > 100) {
-                        // Remove oldest entries
-                        cacheKeys.slice(0, cacheKeys.length - 100).forEach(key => delete colorCache[key]);
-                    }
-                    localStorage.setItem('albumColorCache', JSON.stringify(colorCache));
-                } catch (e) {
-                    console.warn('Failed to save color cache:', e);
-                }
-                
-                resolve(dominantColor);
-            } catch (e) {
-                console.error('Error extracting color:', e);
-                // Fallback to default color
-                resolve({ r: 0, g: 100, 200 });
+        const color = await res.json();
+        if (color.error) throw new Error(color.error);
+
+        // Cache the result
+        colorCache[trackId] = color;
+        
+        // Save to localStorage (limit cache size to 100 entries)
+        try {
+            const cacheKeys = Object.keys(colorCache);
+            if (cacheKeys.length > 100) {
+                // Remove oldest entries
+                cacheKeys.slice(0, cacheKeys.length - 100).forEach(key => delete colorCache[key]);
             }
-        };
+            localStorage.setItem('albumColorCache', JSON.stringify(colorCache));
+        } catch (e) {
+            console.warn('Failed to save color cache:', e);
+        }
         
-        img.onerror = () => {
-            console.error('Failed to load image for color extraction');
-            // Fallback to default color
-            resolve({ r: 0, g: 100, b: 200 });
-        };
-        
-        img.src = imageUrl;
-    });
+        return color;
+    } catch (e) {
+        console.error('Error extracting color from backend:', e);
+        // Fallback to default color (Dark Blue/Green)
+        return { r: 0, g: 100, b: 200 };
+    }
 }
 
 /**
@@ -179,14 +123,14 @@ function applyDynamicBackground(color) {
     const gradient = `
         radial-gradient(
             ellipse at 20% 30%,
-            rgba(${r}, ${g}, ${b}, 0.25) 0%,
-            rgba(${r}, ${g}, ${b}, 0.12) 40%,
+            rgba(${r}, ${g}, ${b}, 0.5) 0%,
+            rgba(${r}, ${g}, ${b}, 0.3) 40%,
             transparent 70%
         ),
         radial-gradient(
             ellipse at 80% 70%,
-            rgba(${Math.floor(r * 0.7)}, ${Math.floor(g * 0.7)}, ${Math.floor(b * 0.7)}, 0.15) 0%,
-            rgba(${Math.floor(r * 0.5)}, ${Math.floor(g * 0.5)}, ${Math.floor(b * 0.5)}, 0.08) 50%,
+            rgba(${Math.floor(r * 0.7)}, ${Math.floor(g * 0.7)}, ${Math.floor(b * 0.7)}, 0.4) 0%,
+            rgba(${Math.floor(r * 0.5)}, ${Math.floor(g * 0.5)}, ${Math.floor(b * 0.5)}, 0.2) 50%,
             transparent 80%
         ),
         #000000
@@ -296,13 +240,15 @@ function updateTrackInfo(track) {
     const nothingPlayingMsg = document.getElementById('nothing-playing');
     
     if (track) {
+        // Universal: Update Album Cover
+        if (albumCover && track.album_cover) {
+            albumCover.src = track.album_cover;
+            albumCover.style.display = 'block';
+        }
+
         if (isQueue) {
-            // Queue page: show album name and cover
+            // Queue page: show album name
             if (title) title.textContent = track.album || 'Unknown Album';
-            if (albumCover && track.album_cover) {
-                albumCover.src = track.album_cover;
-                albumCover.style.display = 'block';
-            }
         } else {
             // Other pages: show track title and artist
             if (title) title.textContent = track.name;
