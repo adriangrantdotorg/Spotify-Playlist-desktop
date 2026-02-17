@@ -12,12 +12,14 @@ This skill enables comprehensive Git and GitHub operations, from basic version c
 ### 1. Repository Setup
 
 **For existing repositories:**
+
 ```bash
 git clone <repository-url>
 cd <repository-name>
 ```
 
 **For new repositories:**
+
 ```bash
 git init
 git remote add origin <repository-url>
@@ -26,22 +28,26 @@ git remote add origin <repository-url>
 ### 2. Basic Git Operations
 
 **Check status:**
+
 ```bash
 git status
 ```
 
 **Stage changes:**
+
 ```bash
 git add .                    # Stage all changes
 git add <specific-file>      # Stage specific file
 ```
 
 **Commit changes:**
+
 ```bash
 git commit -m "Descriptive commit message"
 ```
 
 **Push to GitHub:**
+
 ```bash
 git push origin <branch-name>
 ```
@@ -49,23 +55,29 @@ git push origin <branch-name>
 ### 3. Branch Management
 
 **Create and switch to new branch:**
+
 ```bash
 git checkout -b <branch-name>
 ```
 
 **Switch between branches:**
+
 ```bash
 git checkout <branch-name>
 ```
 
 **List branches:**
+
 ```bash
 git branch
 ```
 
 ## Critical Rule: Always Provide GitHub Links
 
-**IMPORTANT:** Whenever code is pushed to GitHub, ALWAYS include a direct link to the code in your response.
+**IMPORTANT:** Whenever code is pushed to GitHub ALWAYS:
+
+- Include a direct link to the code in your response.
+- Update `/docs/App Overview.md` with any major changes to the app.
 
 ### Link Formats
 
@@ -134,11 +146,13 @@ Always verify the commit URL is accurate by confirming all code was successfully
 ### SSH (Recommended)
 
 Check for existing SSH key:
+
 ```bash
 ls -la ~/.ssh
 ```
 
 Generate new SSH key:
+
 ```bash
 ssh-keygen -t ed25519 -C "your.email@example.com"
 ```
@@ -152,12 +166,14 @@ For HTTPS authentication, use a personal access token instead of password.
 ## Troubleshooting
 
 ### Push Rejected
+
 ```bash
 git pull origin <branch-name> --rebase
 git push origin <branch-name>
 ```
 
 ### Merge Conflicts
+
 ```bash
 git status                    # Identify conflicted files
 # Manually resolve conflicts in files
@@ -167,6 +183,7 @@ git push
 ```
 
 ### Undo Last Commit (Not Pushed)
+
 ```bash
 git reset --soft HEAD~1       # Keep changes staged
 git reset HEAD~1              # Keep changes unstaged
@@ -176,6 +193,7 @@ git reset --hard HEAD~1       # Discard changes
 ## Advanced Operations
 
 ### View Repository Information
+
 ```bash
 git remote -v                 # Show remote URLs
 git log --oneline             # View commit history
@@ -183,6 +201,7 @@ git branch -a                 # Show all branches
 ```
 
 ### Stashing Changes
+
 ```bash
 git stash                     # Save changes temporarily
 git stash pop                 # Restore stashed changes
@@ -190,6 +209,7 @@ git stash list                # View all stashes
 ```
 
 ### Fetching Updates
+
 ```bash
 git fetch origin              # Download latest changes
 git pull origin <branch>      # Fetch and merge
@@ -207,13 +227,17 @@ git pull origin <branch>      # Fetch and merge
 ## GitHub-Specific Features
 
 ### Creating Pull Requests
+
 After pushing a branch, GitHub often shows a link to create a PR. Share this with the user.
 
 ### GitHub Actions
+
 Reference workflows at: `https://github.com/<username>/<repo>/actions`
 
 ### Releases
+
 View releases at: `https://github.com/<username>/<repo>/releases`
+
 # Git Commands Quick Reference
 
 This reference provides comprehensive Git commands organized by category for quick lookup.
@@ -534,6 +558,7 @@ git config --global alias.unstage 'reset HEAD --'
 git config --global alias.last 'log -1 HEAD'
 git config --global alias.lg 'log --graph --oneline --all'
 ```
+
 # GitHub Best Practices and URL Reference
 
 This reference provides GitHub-specific best practices, URL patterns, and workflow recommendations.
@@ -654,6 +679,7 @@ git checkout -b docs/api-guide
 ### PR Title Format
 
 Similar to commit messages:
+
 - `feat: Add user profile page`
 - `fix: Resolve database connection issue`
 - `docs: Update README with installation steps`
@@ -662,19 +688,23 @@ Similar to commit messages:
 
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Type of Change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Breaking change
 - [ ] Documentation update
 
 ## Testing
+
 - How was this tested?
 - Test cases added/updated?
 
 ## Checklist
+
 - [ ] Code follows project style guidelines
 - [ ] Self-review completed
 - [ ] Comments added for complex code
@@ -807,18 +837,22 @@ config/secrets.yaml
 ## GitHub Features to Reference
 
 ### Actions
+
 - Link to workflows: `https://github.com/username/repo/actions`
 - Mention CI/CD status when relevant
 
 ### Releases
+
 - Link to releases when mentioning versions
 - Format: `https://github.com/username/repo/releases`
 
 ### Issues
+
 - Reference issues in commits: `fixes #123` or `closes #456`
 - Link directly when discussing bugs
 
 ### Projects
+
 - Link to project boards when discussing tasks
 - Format: `https://github.com/username/repo/projects`
 
@@ -827,6 +861,7 @@ config/secrets.yaml
 When providing GitHub links after operations:
 
 ### After Pushing Code
+
 ```
 Successfully pushed to GitHub!
 
@@ -835,6 +870,7 @@ Successfully pushed to GitHub!
 ```
 
 ### After Creating Branch
+
 ```
 New branch created and pushed!
 
@@ -842,6 +878,7 @@ New branch created and pushed!
 ```
 
 ### After Committing
+
 ```
 Changes committed successfully!
 
@@ -849,6 +886,7 @@ Changes committed successfully!
 ```
 
 ### For Pull Requests
+
 ```
 Pull request ready for review!
 

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dictionary SYSTEM "file://localhost/System/Library/DTDs/sdef.dtd">
+<dictionary title="Spotify Dashboard Terminology">
+
+    <!--
+        Spotify Dashboard AppleScript Dictionary
+
+        Usage examples:
+            tell application "Spotify Dashboard"
+                show page "playlist"
+                toggle page "tracker"
+                hide app
+            end tell
+    -->
+
+    <suite name="Spotify Dashboard Suite" code="SPDs" description="Commands for controlling Spotify Dashboard">
+
+        <!-- Show Page: Display the app and navigate to a specific page -->
+        <command name="show page" code="SPDsshpg" description="Show the app window and navigate to a page">
+            <cocoa class="SpotifyDashboard.ShowPageCommand"/>
+            <direct-parameter type="text" description="The page to show: playlist, tracker, or queue"/>
+        </command>
+
+        <!-- Hide App: Hide the app window -->
+        <command name="hide app" code="SPDshide" description="Hide the app window">
+            <cocoa class="SpotifyDashboard.HideAppCommand"/>
+        </command>
+
+        <!-- Toggle Page: Toggle the app visibility; if showing, navigate to a specific page -->
+        <command name="toggle page" code="SPDstgpg" description="Toggle app visibility and navigate to a page">
+            <cocoa class="SpotifyDashboard.TogglePageCommand"/>
+            <direct-parameter type="text" description="The page to toggle: playlist, tracker, or queue"/>
+        </command>
+
+    </suite>
+
+</dictionary>

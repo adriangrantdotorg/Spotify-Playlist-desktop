@@ -1,0 +1,187 @@
+import Cocoa
+
+protocol SettingsDelegate: AnyObject {
+    func settingsDidChangeAppMode(menuBarMode: Bool)
+}
+
+class SettingsWindowController {
+
+    private var window: NSWindow?
+    private let hotkeyManager: HotkeyManager
+    weak var delegate: SettingsDelegate?
+
+    private var recorderViews: [DashboardPage: ShortcutRecorderView] = [:]
+
+    init(hotkeyManager: HotkeyManager) {
+        self.hotkeyManager = hotkeyManager
+    }
+
+    func showWindow() {
+        if let existing = window, existing.isVisible {
+            existing.makeKeyAndOrderFront(nil)
+            return
+        }
+
+        let win = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 340),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        win.title = "Settings"
+        win.level = .floating
+        win.isReleasedWhenClosed = false
+        win.center()
+
+        let contentView = NSView(frame: win.contentView!.bounds)
+        contentView.autoresizingMask = [.width, .height]
+
+        // Dark background to match app aesthetic
+        contentView.wantsLayer = true
+        contentView.layer?.backgroundColor = NSColor(white: 0.1, alpha: 1.0).cgColor
+
+        buildSettingsUI(in: contentView)
+
+        win.contentView = contentView
+        win.makeKeyAndOrderFront(nil)
+        self.window = win
+    }
+
+    // MARK: - UI Construction
+
+    private func buildSettingsUI(in container: NSView) {
+        let padding: CGFloat = 24
+        let rowHeight: CGFloat = 36
+        var yOffset: CGFloat = container.bounds.height - padding
+
+        // Title
+        yOffset -= 28
+        let titleLabel = makeLabel("Global Keyboard Shortcuts", size: 16, bold: true)
+        titleLabel.frame = NSRect(x: padding, y: yOffset, width: 300, height: 24)
+        container.addSubview(titleLabel)
+
+        yOffset -= 8
+
+        // Subtitle
+        yOffset -= 18
+        let subtitleLabel = makeLabel("Record a shortcut to toggle each page", size: 12, bold: false)
+        subtitleLabel.textColor = NSColor.secondaryLabelColor
+        subtitleLabel.frame = NSRect(x: padding, y: yOffset, width: 400, height: 16)
+        container.addSubview(subtitleLabel)
+
+        yOffset -= 12
+
+        // Shortcut rows for each page
+        for page in DashboardPage.allCases {
+            yOffset -= rowHeight
+
+            // Label
+            let label = makeLabel(page.displayName, size: 14, bold: false)
+            label.frame = NSRect(x: padding, y: yOffset + 4, width: 100, height: 22)
+            container.addSubview(label)
+
+            // Recorder
+            let recorder = ShortcutRecorderView(frame: NSRect(x: 130, y: yOffset + 2, width: 200, height: 28))
+            recorder.autoresizingMask = []
+
+            // Load existing binding
+            if let binding = hotkeyManager.binding(for: page) {
+                recorder.setDisplayString(binding.displayString)
+            }
+
+            // Capture page in closure
+            let capturedPage = page
+            recorder.onShortcutRecorded = { [weak self] keyCode, modifiers, _ in
+                self?.hotkeyManager.register(page: capturedPage, keyCode: keyCode, modifiers: modifiers)
+            }
+
+            container.addSubview(recorder)
+            recorderViews[page] = recorder
+
+            // Clear button
+            let clearButton = NSButton(frame: NSRect(x: 345, y: yOffset + 2, width: 60, height: 28))
+            clearButton.title = "Clear"
+            clearButton.bezelStyle = .rounded
+            clearButton.tag = page.hashValue
+            clearButton.target = self
+            clearButton.action = #selector(clearShortcut(_:))
+
+            // Store page reference via associated object
+            objc_setAssociatedObject(clearButton, "page", page.rawValue, .OBJC_ASSOCIATION_RETAIN)
+
+            container.addSubview(clearButton)
+
+            yOffset -= 4
+        }
+
+        // Divider line
+        yOffset -= 20
+        let divider = NSBox(frame: NSRect(x: padding, y: yOffset, width: container.bounds.width - padding * 2, height: 1))
+        divider.boxType = .separator
+        container.addSubview(divider)
+
+        yOffset -= 16
+
+        // App Mode section
+        yOffset -= 24
+        let modeTitle = makeLabel("App Mode", size: 16, bold: true)
+        modeTitle.frame = NSRect(x: padding, y: yOffset, width: 200, height: 24)
+        container.addSubview(modeTitle)
+
+        yOffset -= rowHeight
+
+        // Dock/Menu Bar toggle
+        let modeLabel = makeLabel("Run as Menu Bar Utility", size: 14, bold: false)
+        modeLabel.frame = NSRect(x: padding, y: yOffset + 4, width: 200, height: 22)
+        container.addSubview(modeLabel)
+
+        let toggle = NSSwitch(frame: NSRect(x: 250, y: yOffset + 2, width: 50, height: 28))
+        toggle.state = UserDefaults.standard.bool(forKey: "menuBarMode") ? .on : .off
+        toggle.target = self
+        toggle.action = #selector(toggleAppMode(_:))
+        container.addSubview(toggle)
+
+        yOffset -= 8
+
+        // Explanation text
+        yOffset -= 32
+        let explainLabel = makeLabel(
+            "Menu Bar mode hides the app from the Dock and shows\na status bar icon. The app runs as a background utility.",
+            size: 11,
+            bold: false
+        )
+        explainLabel.textColor = NSColor.tertiaryLabelColor
+        explainLabel.maximumNumberOfLines = 2
+        explainLabel.frame = NSRect(x: padding, y: yOffset, width: 420, height: 32)
+        container.addSubview(explainLabel)
+    }
+
+    // MARK: - Actions
+
+    @objc private func clearShortcut(_ sender: NSButton) {
+        guard let pageStr = objc_getAssociatedObject(sender, "page") as? String,
+              let page = DashboardPage(rawValue: pageStr) else { return }
+
+        hotkeyManager.unregister(page: page)
+        recorderViews[page]?.clearShortcut()
+    }
+
+    @objc private func toggleAppMode(_ sender: NSSwitch) {
+        let menuBarMode = sender.state == .on
+        UserDefaults.standard.set(menuBarMode, forKey: "menuBarMode")
+        delegate?.settingsDidChangeAppMode(menuBarMode: menuBarMode)
+    }
+
+    // MARK: - Helpers
+
+    private func makeLabel(_ text: String, size: CGFloat, bold: Bool) -> NSTextField {
+        let label = NSTextField(labelWithString: text)
+        label.font = bold ? NSFont.boldSystemFont(ofSize: size) : NSFont.systemFont(ofSize: size)
+        label.textColor = NSColor.white
+        label.isEditable = false
+        label.isSelectable = false
+        label.isBordered = false
+        label.backgroundColor = .clear
+        return label
+    }
+}

@@ -85,11 +85,21 @@ All three pages share a compact header bar at the top that shows:
 | ---------------------- | ------------------------------------------------------------- |
 | **Track/Album title**  | The song or album currently playing (or most recently played) |
 | **Artist name**        | Below the track/album title                                   |
-| **Album cover**        | Displayed on Queue page only                                  |
+| **Album cover**        | Displayed in top-left corner on all pages                     |
 | **Animated bars**      | Five small bars animate when music is actively playing        |
 | **"Nothing Playing…"** | Shown when Spotify is paused or idle                          |
 
 The dashboard automatically polls Spotify every **10 seconds** for track changes (slows to 60s when the browser tab is in the background).
+
+---
+
+## Dynamic Theming
+
+The app features a **responsive design that adapts to the currently playing music**:
+
+- **Real-time Color Extraction**: The app analyzes the album artwork of the current track to extract its dominant color.
+- **Dynamic Backgrounds**: The entire background of the app shifts to a radial gradient based on the album's color palette, creating an immersive, glassmorphic aesthetic.
+- **Visual Consistency**: High-resolution album artwork is displayed consistently in the top-left header across the Dashboard, Tracker, and Queue pages.
 
 ---
 
