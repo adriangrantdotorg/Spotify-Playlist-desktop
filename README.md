@@ -80,6 +80,12 @@ Then open **http://127.0.0.1:8888** in your browser.
 - Album-based playlist management
 - Add/remove entire albums at once
 
+### 🖥️ Mac Desktop App (`/desktop`)
+
+- Native macOS application wrapper
+- Includes Zoom Controls (Cmd `+`, Cmd `-`, Cmd `0`)
+- Built-in loading screen during server startup
+
 ## Configuration
 
 Edit the CSV files in `data/csv/` to configure which playlists appear:
