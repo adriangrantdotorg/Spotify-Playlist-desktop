@@ -67,7 +67,7 @@ function handleVisibilityChange() {
 }
 
 let playlistRetryCount = 0;
-const MAX_PLAYLIST_RETRIES = 15;
+const MAX_PLAYLIST_RETRIES = 30;
 
 async function init() {
   // 1. Fetch initial Playlists (Static info)
@@ -101,17 +101,30 @@ async function fetchPlaylists() {
 
     allPlaylists = await res.json();
 
+    // Check if backend is still loading playlists
+    const loadingState = res.headers.get("X-Loading-State");
+    const backendStillLoading = loadingState === "loading";
+
     if (allPlaylists.length === 0) {
-      playlistRetryCount++;
-      if (playlistRetryCount <= MAX_PLAYLIST_RETRIES) {
-        console.log(`Playlists not ready yet, retrying in 1s... (attempt ${playlistRetryCount}/${MAX_PLAYLIST_RETRIES})`);
+      if (backendStillLoading) {
+        // Backend is still loading — keep retrying without counting toward limit
+        console.log("Backend still loading playlists, retrying in 2s...");
         document.getElementById("playlist-grid").innerHTML =
           '<div style="color:rgba(255,255,255,0.4); padding:20px; font-family: var(--font-body); text-align:center;">Loading playlists…</div>';
-        setTimeout(fetchPlaylists, 1000);
+        setTimeout(fetchPlaylists, 2000);
       } else {
-        console.warn("Warning: Received 0 playlists after all retries");
-        document.getElementById("playlist-grid").innerHTML =
-          '<div style="color:white; padding:20px;">No playlists found. Check backend logs.</div>';
+        // Backend finished loading but returned 0 — count retries
+        playlistRetryCount++;
+        if (playlistRetryCount <= MAX_PLAYLIST_RETRIES) {
+          console.log(`Playlists not ready yet, retrying in 2s... (attempt ${playlistRetryCount}/${MAX_PLAYLIST_RETRIES})`);
+          document.getElementById("playlist-grid").innerHTML =
+            '<div style="color:rgba(255,255,255,0.4); padding:20px; font-family: var(--font-body); text-align:center;">Loading playlists…</div>';
+          setTimeout(fetchPlaylists, 2000);
+        } else {
+          console.warn("Warning: Received 0 playlists after all retries");
+          document.getElementById("playlist-grid").innerHTML =
+            '<div style="color:white; padding:20px;">No playlists found. Check backend logs.</div>';
+        }
       }
     } else {
       playlistRetryCount = 0;

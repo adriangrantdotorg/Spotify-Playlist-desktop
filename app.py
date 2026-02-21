@@ -2,9 +2,6 @@ import os
 import csv
 import time
 import threading
-import csv
-import time
-import threading
 from flask import Flask, jsonify, request, send_from_directory, redirect, session
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -35,6 +32,10 @@ playlist_map = {}
 dashboard_playlists = []
 # Cache for Playlist Tracks: Playlist ID -> Set of Track URIs
 playlist_tracks_cache = {}
+
+# Loading state: tracks whether initial playlist load is still in progress
+# "loading" = still fetching, "done" = finished (success or failure)
+loading_state = "loading"
 
 def populate_playlist_cache():
     global playlist_tracks_cache
@@ -70,7 +71,23 @@ def populate_playlist_cache():
             
     print(f"Cache population complete. Cached {count}/{len(dashboard_playlists)} playlists.")
 
-def load_playlists():
+def fetch_all_user_playlists():
+    """Fetch all user playlists from Spotify once. Returns list of playlist dicts or None on error."""
+    print("Fetching user playlists from Spotify...")
+    spotify_playlists = []
+    try:
+        results = sp.current_user_playlists(limit=50)
+        spotify_playlists.extend(results['items'])
+        while results['next']:
+            results = sp.next(results)
+            spotify_playlists.extend(results['items'])
+    except Exception as e:
+        print(f"Error fetching playlists: {e}")
+        return None
+    print(f"Fetched {len(spotify_playlists)} user playlists from Spotify.")
+    return spotify_playlists
+
+def load_playlists(spotify_playlists=None):
     global playlist_map, dashboard_playlists
     playlist_map = {}
     dashboard_playlists = []
@@ -89,19 +106,11 @@ def load_playlists():
         print(f"Error reading CSV: {e}")
         return
 
-    # 2. Fetch User's Playlists from Spotify to find IDs
-    # Spotify returns paginated results, need to fetch all
-    print("Fetching user playlists from Spotify...")
-    spotify_playlists = []
-    try:
-        results = sp.current_user_playlists(limit=50)
-        spotify_playlists.extend(results['items'])
-        while results['next']:
-            results = sp.next(results)
-            spotify_playlists.extend(results['items'])
-    except Exception as e:
-        print(f"Error fetching playlists: {e}")
-        return
+    # 2. Use pre-fetched playlists or fetch if not provided
+    if spotify_playlists is None:
+        spotify_playlists = fetch_all_user_playlists()
+        if spotify_playlists is None:
+            return
 
     # Map Name -> ID (Case insensitive for robustness? adhering to exact name for now based on prompt)
     # Using a dict for quick lookup: Name -> ID
@@ -155,7 +164,7 @@ TRACKER_CSV_FILE = "data/csv/Tracker to Display.csv"
 queue_playlists = []
 QUEUE_CSV_FILE = "data/csv/Queue to Display.csv"
 
-def load_tracker_playlists():
+def load_tracker_playlists(spotify_playlists=None):
     global tracker_playlists
     tracker_playlists = []
     
@@ -172,17 +181,11 @@ def load_tracker_playlists():
         print(f"Error reading Tracker CSV: {e}")
         return
 
-    print("Fetching user playlists for Tracker...")
-    spotify_playlists = []
-    try:
-        results = sp.current_user_playlists(limit=50)
-        spotify_playlists.extend(results['items'])
-        while results['next']:
-            results = sp.next(results)
-            spotify_playlists.extend(results['items'])
-    except Exception as e:
-        print(f"Error fetching playlists for tracker: {e}")
-        return
+    # Use pre-fetched playlists or fetch if not provided
+    if spotify_playlists is None:
+        spotify_playlists = fetch_all_user_playlists()
+        if spotify_playlists is None:
+            return
         
     sp_name_to_id = {p['name']: p['id'] for p in spotify_playlists}
     
@@ -259,7 +262,7 @@ def populate_tracker_cache():
             print(f"Error caching tracker playlist {sname}: {e}")
     print(f"Tracker Cache complete. Cached {count} playlists.")
 
-def load_queue_playlists():
+def load_queue_playlists(spotify_playlists=None):
     global queue_playlists
     queue_playlists = []
     
@@ -276,17 +279,11 @@ def load_queue_playlists():
         print(f"Error reading Queue CSV: {e}")
         return
 
-    print("Fetching user playlists for Queue...")
-    spotify_playlists = []
-    try:
-        results = sp.current_user_playlists(limit=50)
-        spotify_playlists.extend(results['items'])
-        while results['next']:
-            results = sp.next(results)
-            spotify_playlists.extend(results['items'])
-    except Exception as e:
-        print(f"Error fetching playlists for queue: {e}")
-        return
+    # Use pre-fetched playlists or fetch if not provided
+    if spotify_playlists is None:
+        spotify_playlists = fetch_all_user_playlists()
+        if spotify_playlists is None:
+            return
         
     sp_name_to_id = {p['name']: p['id'] for p in spotify_playlists}
     
@@ -351,20 +348,29 @@ def populate_queue_cache():
 
 # Helper to load playlists only if authorized
 def safe_load_playlists():
+    global loading_state
     try:
         auth_manager = get_auth_manager()
         token = auth_manager.get_cached_token()
         if token:
             print(f"Token found. Loading playlists... (expires: {token.get('expires_at', 'unknown')})")
-            load_playlists()
-            load_tracker_playlists()
-            load_queue_playlists()
+            # Fetch all user playlists ONCE and share across all loaders
+            spotify_playlists = fetch_all_user_playlists()
+            if spotify_playlists is not None:
+                load_playlists(spotify_playlists)
+                load_tracker_playlists(spotify_playlists)
+                load_queue_playlists(spotify_playlists)
+            else:
+                print("Failed to fetch user playlists from Spotify.")
         else:
             print("No valid token found. Skipping initial playlist load.")
     except Exception as e:
         print(f"Error checking token/loading playlists: {e}")
         import traceback
         traceback.print_exc()
+    finally:
+        loading_state = "done"
+        print(f"Loading state set to: {loading_state}")
 
 # Initial Load Attempt — run in background so Flask starts serving immediately
 threading.Thread(target=safe_load_playlists, daemon=True).start()
@@ -379,29 +385,39 @@ def index():
     auth_manager = get_auth_manager()
     if not auth_manager.validate_token(auth_manager.get_cached_token()):
         return redirect('/login')
-    return send_from_directory('static', 'playlists.html')
+    response = send_from_directory('static', 'playlists.html')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
 
 @app.route('/tracker')
 def tracker():
     auth_manager = get_auth_manager()
     if not auth_manager.validate_token(auth_manager.get_cached_token()):
         return redirect('/login')
-    return send_from_directory('static', 'tracker.html')
+    response = send_from_directory('static', 'tracker.html')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
 
 @app.route('/api/tracker-playlists')
 def get_tracker_playlists():
-    return jsonify(tracker_playlists)
+    response = jsonify(tracker_playlists)
+    response.headers['X-Loading-State'] = loading_state
+    return response
 
 @app.route('/queue')
 def queue():
     auth_manager = get_auth_manager()
     if not auth_manager.validate_token(auth_manager.get_cached_token()):
         return redirect('/login')
-    return send_from_directory('static', 'queue.html')
+    response = send_from_directory('static', 'queue.html')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
 
 @app.route('/api/queue-playlists')
 def get_queue_playlists():
-    return jsonify(queue_playlists)
+    response = jsonify(queue_playlists)
+    response.headers['X-Loading-State'] = loading_state
+    return response
 
 @app.route('/login')
 def login():
@@ -416,14 +432,21 @@ def callback():
     if code:
         auth_manager.get_access_token(code)
         # Load playlists after successful authentication
-        load_playlists()
-        load_tracker_playlists()
-        load_queue_playlists()
+        spotify_playlists = fetch_all_user_playlists()
+        if spotify_playlists is not None:
+            load_playlists(spotify_playlists)
+            load_tracker_playlists(spotify_playlists)
+            load_queue_playlists(spotify_playlists)
     return redirect('/')
 
 @app.route('/<path:path>')
 def serve_static(path):
-    return send_from_directory('static', path)
+    response = send_from_directory('static', path)
+    # Prevent WKWebView from caching stale JS/CSS/HTML files
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/api/current-track')
 def get_current_track():
@@ -483,12 +506,16 @@ def get_playlists():
     # Return playlists with "isActive" status for the given track_id
     track_id = request.args.get('track_id')
     if not track_id:
-        return jsonify(dashboard_playlists) # Return without active status
+        response = jsonify(dashboard_playlists) # Return without active status
+        response.headers['X-Loading-State'] = loading_state
+        return response
 
     # Start with all false
     # ... (logic removed in previous thought, skipping implementation complexity here)
     
-    return jsonify(dashboard_playlists)
+    response = jsonify(dashboard_playlists)
+    response.headers['X-Loading-State'] = loading_state
+    return response
 
 @app.route('/api/check-playlists')
 def check_playlists():
