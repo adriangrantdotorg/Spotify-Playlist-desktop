@@ -10,7 +10,7 @@ class BackendManager {
     private let projectRoot: String
 
     init() {
-        self.healthURL = URL(string: "http://127.0.0.1:\(port)/")!
+        self.healthURL = URL(string: "http://127.0.0.1:\(port)/health")!
 
         // Determine project root:
         // 1. Check SPOTIFY_DASHBOARD_PATH environment variable
@@ -142,20 +142,36 @@ class BackendManager {
 
     /// Wait for the backend to become ready, then call the completion handler
     func waitForReady(completion: @escaping () -> Void) {
+        waitForReady(progress: nil, completion: completion)
+    }
+
+    /// Wait for the backend with progress reporting.
+    /// Progress callback is called on a background thread with values 0.0–1.0.
+    func waitForReady(progress: ((Double) -> Void)?, completion: @escaping () -> Void) {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
-            let maxAttempts = 30
+            let pollInterval: TimeInterval = 0.5
+            let maxAttempts = 40  // 40 × 0.5s = 20s max wait
+            let expectedReadyAttempt: Double = 10 // Expect ~5s typical startup
+
             for attempt in 1...maxAttempts {
+                // Report estimated progress (asymptotic curve so it never quite hits 1.0)
+                let raw = Double(attempt) / expectedReadyAttempt
+                let estimated = min(raw / (1.0 + raw * 0.3), 0.95)
+                progress?(estimated)
+
                 if self.isBackendRunning() {
-                    print("[BackendManager] Backend ready after \(attempt) attempt(s)")
+                    print("[BackendManager] Backend ready after \(attempt) attempt(s) (\(Double(attempt) * pollInterval)s)")
+                    progress?(1.0)
                     completion()
                     return
                 }
-                Thread.sleep(forTimeInterval: 1.0)
+                Thread.sleep(forTimeInterval: pollInterval)
             }
 
-            print("[BackendManager] WARNING: Backend did not become ready after \(maxAttempts)s")
+            print("[BackendManager] WARNING: Backend did not become ready after \(Double(maxAttempts) * pollInterval)s")
+            progress?(1.0)
             // Load anyway - the WebView will show an error and can retry
             completion()
         }

@@ -6,105 +6,123 @@ let colorCache = {}; // Cache extracted colors by track ID
 
 // Load color cache from localStorage
 try {
-    const cached = localStorage.getItem('albumColorCache');
-    if (cached) colorCache = JSON.parse(cached);
+  const cached = localStorage.getItem("albumColorCache");
+  if (cached) colorCache = JSON.parse(cached);
 } catch (e) {
-    console.warn('Failed to load color cache:', e);
+  console.warn("Failed to load color cache:", e);
 }
 
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    generateWaveformBars();
-    init();
+document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  generateWaveformBars();
+  init();
 });
 
 /**
  * Generate waveform bars dynamically in the .visualizer container
  */
 function generateWaveformBars() {
-    const visualizer = document.querySelector('.visualizer');
-    if (!visualizer) return;
+  const visualizer = document.querySelector(".visualizer");
+  if (!visualizer) return;
 
-    // Remove any existing static bars
-    visualizer.querySelectorAll('.bar').forEach(b => b.remove());
+  // Remove any existing static bars
+  visualizer.querySelectorAll(".bar").forEach((b) => b.remove());
 
-    const nothingPlaying = document.getElementById('nothing-playing');
-    const barCount = 35;
-    for (let i = 0; i < barCount; i++) {
-        const bar = document.createElement('div');
-        bar.className = 'bar';
+  const nothingPlaying = document.getElementById("nothing-playing");
+  const barCount = 35;
+  for (let i = 0; i < barCount; i++) {
+    const bar = document.createElement("div");
+    bar.className = "bar";
 
-        // Randomize animation properties for organic look
-        const minH = 2 + Math.random() * 3;        // 2-5px minimum
-        const maxH = 10 + Math.random() * 18;       // 10-28px maximum
-        const duration = 0.4 + Math.random() * 0.6;  // 0.4-1.0s
-        const delay = Math.random() * -1.0;           // stagger start
+    // Randomize animation properties for organic look
+    const minH = 2 + Math.random() * 3; // 2-5px minimum
+    const maxH = 10 + Math.random() * 18; // 10-28px maximum
+    const duration = 0.4 + Math.random() * 0.6; // 0.4-1.0s
+    const delay = Math.random() * -1.0; // stagger start
 
-        bar.style.setProperty('--bar-min', `${minH}px`);
-        bar.style.setProperty('--bar-max', `${maxH}px`);
-        bar.style.height = `${minH}px`;
-        bar.style.animationDuration = `${duration}s`;
-        bar.style.animationDelay = `${delay}s`;
+    bar.style.setProperty("--bar-min", `${minH}px`);
+    bar.style.setProperty("--bar-max", `${maxH}px`);
+    bar.style.height = `${minH}px`;
+    bar.style.animationDuration = `${duration}s`;
+    bar.style.animationDelay = `${delay}s`;
 
-        // Insert bars before the "Nothing Playing" message
-        visualizer.insertBefore(bar, nothingPlaying);
-    }
+    // Insert bars before the "Nothing Playing" message
+    visualizer.insertBefore(bar, nothingPlaying);
+  }
 
-    // Start in hidden state
-    visualizer.classList.add('is-hidden');
+  // Start in hidden state
+  visualizer.classList.add("is-hidden");
 }
 
 function handleVisibilityChange() {
-    if (document.hidden) {
-        console.log("Tab hidden, slowing down polling to 60s");
-        pollInterval = 60000;
-    } else {
-        console.log("Tab visible, restoring polling to 10s");
-        pollInterval = 10000;
-        // Optional: Trigger immediate update if needed, but let's just let the next poll cycle handle it or rely on the shorter interval
-        // pollCurrentTrack(); // Careful not to create double loops
-    }
+  if (document.hidden) {
+    console.log("Tab hidden, slowing down polling to 60s");
+    pollInterval = 60000;
+  } else {
+    console.log("Tab visible, restoring polling to 10s");
+    pollInterval = 10000;
+    // Optional: Trigger immediate update if needed, but let's just let the next poll cycle handle it or rely on the shorter interval
+    // pollCurrentTrack(); // Careful not to create double loops
+  }
 }
 
+let playlistRetryCount = 0;
+const MAX_PLAYLIST_RETRIES = 15;
+
 async function init() {
-    // 1. Fetch initial Playlists (Static info)
-    await fetchPlaylists();
-    
-    // 2. Start Polling for Current Track
-    pollCurrentTrack();
+  // 1. Fetch initial Playlists (Static info)
+  await fetchPlaylists();
+
+  // 2. Start Polling for Current Track
+  pollCurrentTrack();
 }
 
 async function fetchPlaylists() {
-    try {
-        const isTracker = document.body.classList.contains('tracker-page');
-        const isQueue = document.body.classList.contains('queue-page');
-        const endpoint = isTracker ? '/api/tracker-playlists' : (isQueue ? '/api/queue-playlists' : '/api/playlists');
-        
-        const res = await fetch(endpoint);
-        
-        if (res.status === 429) {
-            console.warn("Playlists fetch rate limited, retrying in 5s...");
-            document.getElementById('playlist-grid').innerHTML = '<div style="color:white; padding:20px;">Spotify is rate limiting us... waiting 5s to retry.</div>';
-            setTimeout(fetchPlaylists, 5000);
-            return;
-        }
+  try {
+    const isTracker = document.body.classList.contains("tracker-page");
+    const isQueue = document.body.classList.contains("queue-page");
+    const endpoint = isTracker
+      ? "/api/tracker-playlists"
+      : isQueue
+        ? "/api/queue-playlists"
+        : "/api/playlists";
 
-        if (!res.ok) throw new Error(`Failed to fetch playlists: ${res.status}`);
-        
-        allPlaylists = await res.json();
-        
-        if (allPlaylists.length === 0) {
-            console.warn("Warning: Received 0 playlists");
-            document.getElementById('playlist-grid').innerHTML = '<div style="color:white; padding:20px;">No playlists found. Check backend logs.</div>';
-        } else {
-            // Render immediately (all inactive initially) for speed
-            renderPlaylists();
-        }
-    } catch (e) {
-        console.error("Error in fetchPlaylists:", e);
-        document.getElementById('artist-name').textContent = "Error loading playlists: " + e.message;
+    const res = await fetch(endpoint);
+
+    if (res.status === 429) {
+      console.warn("Playlists fetch rate limited, retrying in 5s...");
+      document.getElementById("playlist-grid").innerHTML =
+        '<div style="color:white; padding:20px;">Spotify is rate limiting us... waiting 5s to retry.</div>';
+      setTimeout(fetchPlaylists, 5000);
+      return;
     }
+
+    if (!res.ok) throw new Error(`Failed to fetch playlists: ${res.status}`);
+
+    allPlaylists = await res.json();
+
+    if (allPlaylists.length === 0) {
+      playlistRetryCount++;
+      if (playlistRetryCount <= MAX_PLAYLIST_RETRIES) {
+        console.log(`Playlists not ready yet, retrying in 1s... (attempt ${playlistRetryCount}/${MAX_PLAYLIST_RETRIES})`);
+        document.getElementById("playlist-grid").innerHTML =
+          '<div style="color:rgba(255,255,255,0.4); padding:20px; font-family: var(--font-body); text-align:center;">Loading playlists…</div>';
+        setTimeout(fetchPlaylists, 1000);
+      } else {
+        console.warn("Warning: Received 0 playlists after all retries");
+        document.getElementById("playlist-grid").innerHTML =
+          '<div style="color:white; padding:20px;">No playlists found. Check backend logs.</div>';
+      }
+    } else {
+      playlistRetryCount = 0;
+      // Render immediately (all inactive initially) for speed
+      renderPlaylists();
+    }
+  } catch (e) {
+    console.error("Error in fetchPlaylists:", e);
+    document.getElementById("artist-name").textContent =
+      "Error loading playlists: " + e.message;
+  }
 }
 
 /**
@@ -114,39 +132,43 @@ async function fetchPlaylists() {
  * @returns {Promise<{r: number, g: number, b: number}>}
  */
 async function extractDominantColor(imageUrl, trackId) {
-    // Check cache first
-    if (colorCache[trackId]) {
-        return colorCache[trackId];
-    }
+  // Check cache first
+  if (colorCache[trackId]) {
+    return colorCache[trackId];
+  }
 
+  try {
+    const res = await fetch(
+      `/api/extract-color?url=${encodeURIComponent(imageUrl)}`,
+    );
+    if (!res.ok) throw new Error("Network response was not ok");
+
+    const color = await res.json();
+    if (color.error) throw new Error(color.error);
+
+    // Cache the result
+    colorCache[trackId] = color;
+
+    // Save to localStorage (limit cache size to 100 entries)
     try {
-        const res = await fetch(`/api/extract-color?url=${encodeURIComponent(imageUrl)}`);
-        if (!res.ok) throw new Error('Network response was not ok');
-        
-        const color = await res.json();
-        if (color.error) throw new Error(color.error);
-
-        // Cache the result
-        colorCache[trackId] = color;
-        
-        // Save to localStorage (limit cache size to 100 entries)
-        try {
-            const cacheKeys = Object.keys(colorCache);
-            if (cacheKeys.length > 100) {
-                // Remove oldest entries
-                cacheKeys.slice(0, cacheKeys.length - 100).forEach(key => delete colorCache[key]);
-            }
-            localStorage.setItem('albumColorCache', JSON.stringify(colorCache));
-        } catch (e) {
-            console.warn('Failed to save color cache:', e);
-        }
-        
-        return color;
+      const cacheKeys = Object.keys(colorCache);
+      if (cacheKeys.length > 100) {
+        // Remove oldest entries
+        cacheKeys
+          .slice(0, cacheKeys.length - 100)
+          .forEach((key) => delete colorCache[key]);
+      }
+      localStorage.setItem("albumColorCache", JSON.stringify(colorCache));
     } catch (e) {
-        console.error('Error extracting color from backend:', e);
-        // Fallback to default color (Dark Blue/Green)
-        return { r: 0, g: 100, b: 200 };
+      console.warn("Failed to save color cache:", e);
     }
+
+    return color;
+  } catch (e) {
+    console.error("Error extracting color from backend:", e);
+    // Fallback to default color (Dark Blue/Green)
+    return { r: 0, g: 100, b: 200 };
+  }
 }
 
 /**
@@ -154,10 +176,10 @@ async function extractDominantColor(imageUrl, trackId) {
  * @param {{r: number, g: number, b: number}} color - Dominant color
  */
 function applyDynamicBackground(color) {
-    const { r, g, b } = color;
-    
-    // Create beautiful gradient with the dominant color
-    const gradient = `
+  const { r, g, b } = color;
+
+  // Create beautiful gradient with the dominant color
+  const gradient = `
         radial-gradient(
             ellipse at 20% 30%,
             rgba(${r}, ${g}, ${b}, 0.5) 0%,
@@ -172,324 +194,341 @@ function applyDynamicBackground(color) {
         ),
         #000000
     `;
-    
-    document.body.style.background = gradient;
-    document.body.style.transition = 'background 1.5s ease';
+
+  document.body.style.background = gradient;
+  document.body.style.transition = "background 1.5s ease";
 }
-
-
-
 
 let pollInterval = 10000;
 let consecutiveErrors = 0;
 
 async function pollCurrentTrack() {
-    try {
-        const res = await fetch('/api/current-track');
-        
-        if (res.status === 429) {
-            const data = await res.json();
-            const retryAfter = data.retry_after || 5;
-            
-            
-            console.warn(`Rate limited, Retry-After: ${retryAfter}s`);
-            const trackTitleEl = document.getElementById('track-title') || document.getElementById('track-name');
-            if (trackTitleEl) trackTitleEl.textContent = "Spotify Rate Limited";
-            
-            // Start Countdown
-            let timeLeft = retryAfter;
-            document.getElementById('artist-name').textContent = `Retrying in ${timeLeft}s...`;
-            
-            const countdownInterval = setInterval(() => {
-                timeLeft--;
-                if (timeLeft > 0) {
-                    document.getElementById('artist-name').textContent = `Retrying in ${timeLeft}s...`;
-                } else {
-                    clearInterval(countdownInterval);
-                }
-            }, 1000);
+  try {
+    const res = await fetch("/api/current-track");
 
-            // Set next poll
-            pollInterval = (retryAfter * 1000) + 500; // Add buffer
-            
-        } else if (res.status === 200) {
-            consecutiveErrors = 0;
-            pollInterval = 10000; // Reset to 10s
-            
-            const track = await res.json();
-            if (track) {
-                const idChanged = !currentTrack || currentTrack.id !== track.id;
-                const statusChanged = !currentTrack || currentTrack.is_playing !== track.is_playing;
+    if (res.status === 429) {
+      const data = await res.json();
+      const retryAfter = data.retry_after || 5;
 
-                if (idChanged || statusChanged) {
-                    currentTrack = track;
-                    updateTrackInfo(track);
-                    if (idChanged) {
-                         try {
-                            // Optimistically render to ensure headers/visuals are right, 
-                            // checks will come later
-                            renderPlaylists();
-                            await checkPlaylists(track.uri);
-                        } catch (err) {
-                            console.error("Error checking playlists:", err);
-                        }
-                    }
-                }
-            } else {
-                updateTrackInfo(null);
-            }
+      console.warn(`Rate limited, Retry-After: ${retryAfter}s`);
+      const trackTitleEl =
+        document.getElementById("track-title") ||
+        document.getElementById("track-name");
+      if (trackTitleEl) trackTitleEl.textContent = "Spotify Rate Limited";
+
+      // Start Countdown
+      let timeLeft = retryAfter;
+      document.getElementById("artist-name").textContent =
+        `Retrying in ${timeLeft}s...`;
+
+      const countdownInterval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft > 0) {
+          document.getElementById("artist-name").textContent =
+            `Retrying in ${timeLeft}s...`;
         } else {
-             // Other errors (500, etc)
-             consecutiveErrors++;
-             pollInterval = Math.min(pollInterval * 1.5, 30000); 
+          clearInterval(countdownInterval);
         }
-    } catch (e) {
-        console.error("Polling error:", e);
-        consecutiveErrors++;
-        pollInterval = Math.min(pollInterval * 1.5, 30000);
+      }, 1000);
+
+      // Set next poll
+      pollInterval = retryAfter * 1000 + 500; // Add buffer
+    } else if (res.status === 200) {
+      consecutiveErrors = 0;
+      pollInterval = 10000; // Reset to 10s
+
+      const track = await res.json();
+      if (track) {
+        const idChanged = !currentTrack || currentTrack.id !== track.id;
+        const statusChanged =
+          !currentTrack || currentTrack.is_playing !== track.is_playing;
+
+        if (idChanged || statusChanged) {
+          currentTrack = track;
+          updateTrackInfo(track);
+          if (idChanged) {
+            try {
+              // Optimistically render to ensure headers/visuals are right,
+              // checks will come later
+              renderPlaylists();
+              await checkPlaylists(track.uri);
+            } catch (err) {
+              console.error("Error checking playlists:", err);
+            }
+          }
+        }
+      } else {
+        updateTrackInfo(null);
+      }
+    } else {
+      // Other errors (500, etc)
+      consecutiveErrors++;
+      pollInterval = Math.min(pollInterval * 1.5, 30000);
     }
-    
-    setTimeout(pollCurrentTrack, pollInterval);
+  } catch (e) {
+    console.error("Polling error:", e);
+    consecutiveErrors++;
+    pollInterval = Math.min(pollInterval * 1.5, 30000);
+  }
+
+  setTimeout(pollCurrentTrack, pollInterval);
 }
 
-
 async function checkPlaylists(trackUri) {
-    try {
-        const res = await fetch(`/api/check-playlists?track_uri=${encodeURIComponent(trackUri)}`);
-        if (res.ok) {
-            const activeIds = await res.json();
-            activePlaylistsMap = new Set(activeIds);
-            renderPlaylists();
-        }
-    } catch (e) {
-        console.error("Error checking playlists:", e);
+  try {
+    const res = await fetch(
+      `/api/check-playlists?track_uri=${encodeURIComponent(trackUri)}`,
+    );
+    if (res.ok) {
+      const activeIds = await res.json();
+      activePlaylistsMap = new Set(activeIds);
+      renderPlaylists();
     }
+  } catch (e) {
+    console.error("Error checking playlists:", e);
+  }
 }
 
 function updateTrackInfo(track) {
-    const isQueue = document.body.classList.contains('queue-page');
+  const isQueue = document.body.classList.contains("queue-page");
 
-    // Get elements based on page type
-    const title = document.getElementById('track-title') || document.getElementById('album-name');
-    const artist = document.getElementById('artist-name');
-    const albumCover = document.getElementById('album-cover');
-    const visualizer = document.querySelector('.visualizer');
-    const nothingPlayingMsg = document.getElementById('nothing-playing');
+  // Get elements based on page type
+  const title =
+    document.getElementById("track-title") ||
+    document.getElementById("album-name");
+  const artist = document.getElementById("artist-name");
+  const albumCover = document.getElementById("album-cover");
+  const visualizer = document.querySelector(".visualizer");
+  const nothingPlayingMsg = document.getElementById("nothing-playing");
 
-    if (track) {
-        // Universal: Update Album Cover
-        if (albumCover && track.album_cover) {
-            albumCover.src = track.album_cover;
-            albumCover.style.display = 'block';
-        }
-
-        if (isQueue) {
-            // Queue page: show album name
-            if (title) title.textContent = track.album || 'Unknown Album';
-        } else {
-            // Other pages: show track title and artist
-            if (title) title.textContent = track.name;
-            if (artist) artist.textContent = track.artist;
-        }
-
-        // Extract dominant color and update background
-        if (track.album_cover) {
-            extractDominantColor(track.album_cover, track.id)
-                .then(color => applyDynamicBackground(color))
-                .catch(err => console.warn('Color extraction failed:', err));
-        }
-
-        if (visualizer) {
-            visualizer.classList.remove('is-hidden');
-            if (track.is_playing) {
-                visualizer.classList.add('is-playing');
-                visualizer.classList.remove('is-paused');
-                nothingPlayingMsg.style.display = 'none';
-            } else {
-                visualizer.classList.remove('is-playing');
-                visualizer.classList.add('is-paused');
-                nothingPlayingMsg.style.display = 'none';
-            }
-        }
-    } else {
-        if (isQueue) {
-            if (title) title.textContent = "Not Playing";
-            if (albumCover) albumCover.style.display = 'none';
-        } else {
-            if (title) title.textContent = "Not Playing";
-            if (artist) artist.textContent = "Play a song on Spotify";
-        }
-        if (visualizer) {
-            visualizer.classList.remove('is-playing', 'is-paused');
-            visualizer.classList.add('is-hidden');
-        }
-        nothingPlayingMsg.style.display = 'block';
-        activePlaylistsMap.clear();
-        renderPlaylists();
+  if (track) {
+    // Universal: Update Album Cover
+    if (albumCover && track.album_cover) {
+      albumCover.src = track.album_cover;
+      albumCover.style.display = "block";
     }
+
+    if (isQueue) {
+      // Queue page: show album name
+      if (title) title.textContent = track.album || "Unknown Album";
+    } else {
+      // Other pages: show track title and artist
+      if (title) title.textContent = track.name;
+      if (artist) artist.textContent = track.artist;
+    }
+
+    // Extract dominant color and update background
+    if (track.album_cover) {
+      extractDominantColor(track.album_cover, track.id)
+        .then((color) => applyDynamicBackground(color))
+        .catch((err) => console.warn("Color extraction failed:", err));
+    }
+
+    if (visualizer) {
+      visualizer.classList.remove("is-hidden");
+      if (track.is_playing) {
+        visualizer.classList.add("is-playing");
+        visualizer.classList.remove("is-paused");
+        nothingPlayingMsg.style.display = "none";
+      } else {
+        visualizer.classList.remove("is-playing");
+        visualizer.classList.add("is-paused");
+        nothingPlayingMsg.style.display = "none";
+      }
+    }
+  } else {
+    if (isQueue) {
+      if (title) title.textContent = "Not Playing";
+      if (albumCover) albumCover.style.display = "none";
+    } else {
+      if (title) title.textContent = "Not Playing";
+      if (artist) artist.textContent = "Play a song on Spotify";
+    }
+    if (visualizer) {
+      visualizer.classList.remove("is-playing", "is-paused");
+      visualizer.classList.add("is-hidden");
+    }
+    nothingPlayingMsg.style.display = "block";
+    activePlaylistsMap.clear();
+    renderPlaylists();
+  }
 }
 
 function renderPlaylists() {
-    const grid = document.getElementById('playlist-grid');
-    grid.innerHTML = '';
-    
-    const isTracker = document.body.classList.contains('tracker-page');
-    const isQueue = document.body.classList.contains('queue-page');
+  const grid = document.getElementById("playlist-grid");
+  grid.innerHTML = "";
 
-    // Helper to create item
-    const createItem = (playlist) => {
-        // Handle DIVIDER for Tracker and Queue
-        if ((isTracker || isQueue) && playlist.is_divider) {
-            const div = document.createElement('div');
-            div.className = 'section-divider-green';
-            return div;
-        }
+  const isTracker = document.body.classList.contains("tracker-page");
+  const isQueue = document.body.classList.contains("queue-page");
 
-        const isActive = activePlaylistsMap.has(playlist.id);
-        
-        const item = document.createElement('div');
-        item.className = `playlist-item ${isActive ? 'active' : ''}`;
-        
-        // Use ID for toggling
-        item.onclick = () => togglePlaylist(playlist);
-
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'playlist-name';
-        nameSpan.textContent = playlist.name;
-
-        item.appendChild(nameSpan);
-
-        // Status Indicator (Checkmark)
-        const indicator = document.createElement('div');
-        indicator.className = 'status-indicator';
-        indicator.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
-        item.appendChild(indicator);
-
-        return item;
-    };
-
-    if (isTracker || isQueue) {
-        // Tracker/Queue Logic: Linear Rendering, Strict Order
-        const linearGroup = document.createElement('div');
-        linearGroup.className = isTracker ? 'tracker-list' : 'queue-list';
-        // Styles moved to CSS for full-page scaling
-        
-        allPlaylists.forEach(p => {
-             linearGroup.appendChild(createItem(p));
-        });
-        grid.appendChild(linearGroup);
-
-    } else {
-        // Standard Dashboard Logic: Split Active/Inactive
-        
-        // Map state to playlists locally for sorting
-        const playlistsWithState = allPlaylists.map(p => ({
-            ...p,
-            isActive: activePlaylistsMap.has(p.id)
-        }));
-
-        const activePlaylists = playlistsWithState.filter(p => p.isActive).sort((a, b) => a.name.localeCompare(b.name));
-        const inactivePlaylists = playlistsWithState.filter(p => !p.isActive).sort((a, b) => a.name.localeCompare(b.name));
-
-        // Render Active Group (Column Layout)
-        if (activePlaylists.length > 0) {
-            const activeGroup = document.createElement('div');
-            activeGroup.className = 'active-group';
-            activePlaylists.forEach(p => activeGroup.appendChild(createItem(p)));
-            grid.appendChild(activeGroup);
-        }
-
-        // Divider
-        if (activePlaylists.length > 0 && inactivePlaylists.length > 0) {
-            const divider = document.createElement('div');
-            divider.className = 'playlist-divider';
-            grid.appendChild(divider);
-        }
-
-        // Render Inactive Group (Column Layout)
-        if (inactivePlaylists.length > 0) {
-            const inactiveGroup = document.createElement('div');
-            inactiveGroup.className = 'inactive-group';
-            inactivePlaylists.forEach(p => inactiveGroup.appendChild(createItem(p)));
-            grid.appendChild(inactiveGroup);
-        }
+  // Helper to create item
+  const createItem = (playlist) => {
+    // Handle DIVIDER for Tracker and Queue
+    if ((isTracker || isQueue) && playlist.is_divider) {
+      const div = document.createElement("div");
+      div.className = "section-divider-green";
+      return div;
     }
+
+    const isActive = activePlaylistsMap.has(playlist.id);
+
+    const item = document.createElement("div");
+    item.className = `playlist-item ${isActive ? "active" : ""}`;
+
+    // Use ID for toggling
+    item.onclick = () => togglePlaylist(playlist);
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "playlist-name";
+    nameSpan.textContent = playlist.name;
+
+    item.appendChild(nameSpan);
+
+    // Status Indicator (Checkmark)
+    const indicator = document.createElement("div");
+    indicator.className = "status-indicator";
+    indicator.innerHTML =
+      '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+    item.appendChild(indicator);
+
+    return item;
+  };
+
+  if (isTracker || isQueue) {
+    // Tracker/Queue Logic: Linear Rendering, Strict Order
+    const linearGroup = document.createElement("div");
+    linearGroup.className = isTracker ? "tracker-list" : "queue-list";
+    // Styles moved to CSS for full-page scaling
+
+    allPlaylists.forEach((p) => {
+      linearGroup.appendChild(createItem(p));
+    });
+    grid.appendChild(linearGroup);
+  } else {
+    // Standard Dashboard Logic: Split Active/Inactive
+
+    // Map state to playlists locally for sorting
+    const playlistsWithState = allPlaylists.map((p) => ({
+      ...p,
+      isActive: activePlaylistsMap.has(p.id),
+    }));
+
+    const activePlaylists = playlistsWithState
+      .filter((p) => p.isActive)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const inactivePlaylists = playlistsWithState
+      .filter((p) => !p.isActive)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    // Render Active Group (Column Layout)
+    if (activePlaylists.length > 0) {
+      const activeGroup = document.createElement("div");
+      activeGroup.className = "active-group";
+      activePlaylists.forEach((p) => activeGroup.appendChild(createItem(p)));
+      grid.appendChild(activeGroup);
+    }
+
+    // Divider
+    if (activePlaylists.length > 0 && inactivePlaylists.length > 0) {
+      const divider = document.createElement("div");
+      divider.className = "playlist-divider";
+      grid.appendChild(divider);
+    }
+
+    // Render Inactive Group (Grid Layout - fills remaining space)
+    if (inactivePlaylists.length > 0) {
+      const inactiveGroup = document.createElement("div");
+      inactiveGroup.className = "inactive-group";
+      const rowCount = Math.ceil(inactivePlaylists.length / 3);
+      inactiveGroup.style.gridTemplateRows = `repeat(${rowCount}, 1fr)`;
+      inactivePlaylists.forEach((p) =>
+        inactiveGroup.appendChild(createItem(p)),
+      );
+      grid.appendChild(inactiveGroup);
+    }
+  }
 }
 
 async function togglePlaylist(playlist) {
-    if (!currentTrack) return;
+  if (!currentTrack) return;
 
-    const isCurrentlyActive = activePlaylistsMap.has(playlist.id);
-    const action = isCurrentlyActive ? 'remove' : 'add';
-    const isQueue = document.body.classList.contains('queue-page');
+  const isCurrentlyActive = activePlaylistsMap.has(playlist.id);
+  const action = isCurrentlyActive ? "remove" : "add";
+  const isQueue = document.body.classList.contains("queue-page");
 
-    // Optimistic Update
-    if (action === 'add') {
-        activePlaylistsMap.add(playlist.id);
-    } else {
-        activePlaylistsMap.delete(playlist.id);
-    }
+  // Optimistic Update
+  if (action === "add") {
+    activePlaylistsMap.add(playlist.id);
+  } else {
+    activePlaylistsMap.delete(playlist.id);
+  }
 
-    // Copy Spotify Playlist Name to Clipboard (on Add OR Remove)
-    if (playlist.spotify_name) {
-        navigator.clipboard.writeText(playlist.spotify_name).catch(err => {
-            console.error('Failed to copy text: ', err);
-        });
-    }
-    renderPlaylists();
+  // Copy Spotify Playlist Name to Clipboard (on Add OR Remove)
+  if (playlist.spotify_name) {
+    navigator.clipboard.writeText(playlist.spotify_name).catch((err) => {
+      console.error("Failed to copy text: ", err);
+    });
+  }
+  renderPlaylists();
 
-    try {
-        // Use different endpoint based on page type
-        const endpoint = isQueue ? '/api/playlist/toggle-album' : '/api/playlist/toggle';
-        const requestBody = isQueue ? {
-            playlist_id: playlist.id,
-            album_id: currentTrack.album_id,
-            action: action
-        } : {
-            playlist_id: playlist.id,
-            track_uri: currentTrack.uri,
-            action: action
+  try {
+    // Use different endpoint based on page type
+    const endpoint = isQueue
+      ? "/api/playlist/toggle-album"
+      : "/api/playlist/toggle";
+    const requestBody = isQueue
+      ? {
+          playlist_id: playlist.id,
+          album_id: currentTrack.album_id,
+          action: action,
+        }
+      : {
+          playlist_id: playlist.id,
+          track_uri: currentTrack.uri,
+          action: action,
         };
 
-        const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-        });
-        
-        const data = await res.json();
-        if (!data.success) {
-            console.error("Failed to toggle:", data.error);
-            // Revert on failure
-            if (action === 'add') activePlaylistsMap.delete(playlist.id);
-            else activePlaylistsMap.add(playlist.id);
-            renderPlaylists();
-            alert("Failed to update playlist: " + data.error);
-        } else if (isQueue && data.track_count) {
-            // Show success message with track count for album operations
-            console.log(`${action === 'add' ? 'Added' : 'Removed'} ${data.track_count} tracks from album`);
-        }
-    } catch (e) {
-        console.error("Error toggling:", e);
-        // Revert on failure
-        if (action === 'add') activePlaylistsMap.delete(playlist.id);
-        else activePlaylistsMap.add(playlist.id);
-        alert("Network error.");
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+      console.error("Failed to toggle:", data.error);
+      // Revert on failure
+      if (action === "add") activePlaylistsMap.delete(playlist.id);
+      else activePlaylistsMap.add(playlist.id);
+      renderPlaylists();
+      alert("Failed to update playlist: " + data.error);
+    } else if (isQueue && data.track_count) {
+      // Show success message with track count for album operations
+      console.log(
+        `${action === "add" ? "Added" : "Removed"} ${data.track_count} tracks from album`,
+      );
     }
+  } catch (e) {
+    console.error("Error toggling:", e);
+    // Revert on failure
+    if (action === "add") activePlaylistsMap.delete(playlist.id);
+    else activePlaylistsMap.add(playlist.id);
+    alert("Network error.");
+  }
 }
 
 // Fade Animation Handling
-document.addEventListener('visibilitychange', () => {
-    const container = document.querySelector('.app-container');
-    if (container) {
-        if (document.hidden) {
-            // Prepare for next entry: reset animation state so user sees fade-in on return
-            container.style.animation = 'none';
-            container.style.opacity = '0';
-        } else {
-            // Re-trigger the calm fade-in
-            container.style.animation = 'calmFadeIn 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards';
-        }
+document.addEventListener("visibilitychange", () => {
+  const container = document.querySelector(".app-container");
+  if (container) {
+    if (document.hidden) {
+      // Prepare for next entry: reset animation state so user sees fade-in on return
+      container.style.animation = "none";
+      container.style.opacity = "0";
+    } else {
+      // Re-trigger the calm fade-in
+      container.style.animation =
+        "calmFadeIn 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards";
     }
+  }
 });
-

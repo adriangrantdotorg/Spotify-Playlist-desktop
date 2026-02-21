@@ -79,6 +79,43 @@ class MainWindowController: NSObject {
     func reload() {
         webView.reload()
     }
+
+    // MARK: - Zoom
+
+    private static let zoomStep: CGFloat = 0.1
+    private static let minZoom: CGFloat = 0.5
+    private static let maxZoom: CGFloat = 3.0
+    private static let defaultZoom: CGFloat = 1.0
+
+    private var savedZoom: CGFloat {
+        let val = UserDefaults.standard.double(forKey: "webViewZoom")
+        return val > 0 ? CGFloat(val) : MainWindowController.defaultZoom
+    }
+
+    /// Zoom in (⌘+)
+    func zoomIn() {
+        let newZoom = min(webView.pageZoom + MainWindowController.zoomStep, MainWindowController.maxZoom)
+        webView.pageZoom = newZoom
+        UserDefaults.standard.set(Double(newZoom), forKey: "webViewZoom")
+    }
+
+    /// Zoom out (⌘-)
+    func zoomOut() {
+        let newZoom = max(webView.pageZoom - MainWindowController.zoomStep, MainWindowController.minZoom)
+        webView.pageZoom = newZoom
+        UserDefaults.standard.set(Double(newZoom), forKey: "webViewZoom")
+    }
+
+    /// Reset zoom to default (⌘0)
+    func resetZoom() {
+        webView.pageZoom = MainWindowController.defaultZoom
+        UserDefaults.standard.set(Double(MainWindowController.defaultZoom), forKey: "webViewZoom")
+    }
+
+    /// Restore saved zoom level (called after page loads)
+    private func restoreZoom() {
+        webView.pageZoom = savedZoom
+    }
 }
 
 // MARK: - WKNavigationDelegate
@@ -113,6 +150,11 @@ extension MainWindowController: WKNavigationDelegate {
         // Ignore cancelled navigations
         if nsError.code == NSURLErrorCancelled { return }
         print("WebView navigation failed: \(error.localizedDescription)")
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // Restore saved zoom level after each page load
+        restoreZoom()
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {

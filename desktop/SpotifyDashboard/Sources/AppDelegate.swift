@@ -10,6 +10,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusBarController: StatusBarController?
     var backendManager: BackendManager!
     var hotkeyManager: HotkeyManager!
+    var loadingViewController: LoadingViewController?
 
     private var isMenuBarMode: Bool {
         get { UserDefaults.standard.bool(forKey: "menuBarMode") }
@@ -35,7 +36,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create the main window
         createMainWindow()
 
-        // Create the web view controller
+        // Show the window and loading screen immediately
+        showWindowOnCurrentScreen()
+        if let contentView = mainWindow.contentView {
+            loadingViewController = LoadingViewController(parentView: contentView)
+        }
+
+        // Create the web view controller (adds WebView behind the loading screen)
         webViewController = MainWindowController(window: mainWindow)
 
         // Set up hotkey manager
@@ -50,11 +57,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Apply Dock/Menu Bar mode
         applyAppMode()
 
-        // Wait for backend to be ready, then load the web view
-        backendManager.waitForReady { [weak self] in
+        // Wait for backend to be ready with progress reporting
+        backendManager.waitForReady(progress: { [weak self] progress in
+            DispatchQueue.main.async {
+                self?.loadingViewController?.setProgress(CGFloat(progress))
+            }
+        }) { [weak self] in
             DispatchQueue.main.async {
                 self?.webViewController.loadPage(.playlists)
-                self?.showWindowOnCurrentScreen()
+                // Dismiss loading screen after a brief moment for the WebView to render
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    self?.loadingViewController?.dismiss {
+                        self?.loadingViewController = nil
+                    }
+                }
             }
         }
 
@@ -77,11 +93,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Window Creation
 
     private func createMainWindow() {
-        let windowRect = NSRect(x: 0, y: 0, width: 900, height: 600)
-        let styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable]
+        // Fill the entire visible screen area on launch
+        let screenFrame = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame
+            ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
+        let styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
 
         mainWindow = NSWindow(
-            contentRect: windowRect,
+            contentRect: screenFrame,
             styleMask: styleMask,
             backing: .buffered,
             defer: false
@@ -95,23 +113,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindow.titleVisibility = .hidden
         mainWindow.backgroundColor = NSColor(red: 0.07, green: 0.07, blue: 0.07, alpha: 1.0)
 
-        // Prevent resizing
-        mainWindow.minSize = NSSize(width: 900, height: 600)
-        mainWindow.maxSize = NSSize(width: 900, height: 600)
+        // Allow fullscreen via the green traffic-light button
+        mainWindow.collectionBehavior = [.fullScreenPrimary]
 
-        mainWindow.center()
+        // Minimum reasonable size, no maximum cap
+        mainWindow.minSize = NSSize(width: 800, height: 500)
+
     }
 
     // MARK: - Window Show/Hide
 
     func showWindowOnCurrentScreen() {
-        // Position on the current active monitor
+        // Fill the entire visible area of the current monitor
         if let screen = NSScreen.main ?? NSScreen.screens.first {
-            let screenFrame = screen.visibleFrame
-            let windowSize = mainWindow.frame.size
-            let x = screenFrame.origin.x + (screenFrame.width - windowSize.width) / 2
-            let y = screenFrame.origin.y + (screenFrame.height - windowSize.height) / 2
-            mainWindow.setFrameOrigin(NSPoint(x: x, y: y))
+            mainWindow.setFrame(screen.visibleFrame, display: true)
         }
 
         mainWindow.makeKeyAndOrderFront(nil)
@@ -208,6 +223,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         viewMenu.addItem(NSMenuItem.separator())
         viewMenu.addItem(withTitle: "Reload Page", action: #selector(reloadPage), keyEquivalent: "r")
         viewMenu.addItem(NSMenuItem.separator())
+        let zoomInItem = NSMenuItem(title: "Zoom In", action: #selector(zoomIn), keyEquivalent: "+")
+        zoomInItem.keyEquivalentModifierMask = [.command]
+        viewMenu.addItem(zoomInItem)
+        // Also allow ⌘= (unshifted plus key)
+        let zoomInAlt = NSMenuItem(title: "Zoom In", action: #selector(zoomIn), keyEquivalent: "=")
+        zoomInAlt.keyEquivalentModifierMask = [.command]
+        zoomInAlt.isAlternate = true
+        viewMenu.addItem(zoomInAlt)
+        viewMenu.addItem(withTitle: "Zoom Out", action: #selector(zoomOut), keyEquivalent: "-")
+        viewMenu.addItem(withTitle: "Actual Size", action: #selector(resetZoom), keyEquivalent: "0")
+        viewMenu.addItem(NSMenuItem.separator())
         let floatItem = NSMenuItem(title: "Float on Top", action: #selector(toggleFloatOnTop(_:)), keyEquivalent: "")
         floatItem.state = isFloatOnTop ? .on : .off
         viewMenu.addItem(floatItem)
@@ -243,6 +269,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func reloadPage() {
         webViewController.reload()
+    }
+
+    @objc func zoomIn() {
+        webViewController.zoomIn()
+    }
+
+    @objc func zoomOut() {
+        webViewController.zoomOut()
+    }
+
+    @objc func resetZoom() {
+        webViewController.resetZoom()
     }
 
     @objc func toggleFloatOnTop(_ sender: NSMenuItem) {

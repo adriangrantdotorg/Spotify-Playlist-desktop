@@ -366,8 +366,13 @@ def safe_load_playlists():
         import traceback
         traceback.print_exc()
 
-# Initial Load Attempt
-safe_load_playlists()
+# Initial Load Attempt — run in background so Flask starts serving immediately
+threading.Thread(target=safe_load_playlists, daemon=True).start()
+
+# Health check endpoint (fast, no auth required)
+@app.route('/health')
+def health():
+    return 'ok', 200
 
 @app.route('/')
 def index():

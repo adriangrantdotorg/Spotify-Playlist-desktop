@@ -51,6 +51,7 @@ SWIFT_FILES=(
     "$SOURCES_DIR/AppDelegate.swift"
     "$SOURCES_DIR/MainWindowController.swift"
     "$SOURCES_DIR/BackendManager.swift"
+    "$SOURCES_DIR/LoadingViewController.swift"
     "$SOURCES_DIR/StatusBarController.swift"
     "$SOURCES_DIR/HotkeyManager.swift"
     "$SOURCES_DIR/ShortcutRecorderView.swift"
