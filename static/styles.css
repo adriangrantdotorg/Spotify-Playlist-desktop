@@ -525,14 +525,29 @@ body.playlists-page .bar {
   box-shadow: 0 0 4px rgba(132, 255, 0, 0.4);
 }
 
+body.playlists-page .page-identifier {
+  color: var(--neon-green);
+  text-shadow: 0 0 12px rgba(132, 255, 0, 0.6);
+}
+
 body.tracker-page .bar {
   background: var(--neon-purple);
   box-shadow: 0 0 4px rgba(188, 19, 254, 0.4);
 }
 
+body.tracker-page .page-identifier {
+  color: var(--neon-purple);
+  text-shadow: 0 0 12px rgba(188, 19, 254, 0.6);
+}
+
 body.queue-page .bar {
   background: #ff8c00;
   box-shadow: 0 0 4px rgba(255, 140, 0, 0.4);
+}
+
+body.queue-page .page-identifier {
+  color: #ff8c00;
+  text-shadow: 0 0 12px rgba(255, 140, 0, 0.6);
 }
 
 @keyframes waveform {
