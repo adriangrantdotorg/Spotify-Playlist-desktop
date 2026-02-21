@@ -190,6 +190,7 @@ body {
 .active-group {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-auto-flow: column; /* Fill top-to-bottom per column so alphabetical sort reads down each column */
   gap: clamp(3px, 0.4vh, 6px);
   width: 100%;
   margin-bottom: 0;
@@ -227,6 +228,7 @@ body {
 .inactive-group {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-auto-flow: column; /* Fill top-to-bottom per column so alphabetical sort reads down each column */
   grid-auto-rows: 1fr; /* All rows equal height, stretch to fill */
   gap: clamp(3px, 0.4vh, 6px);
   width: 100%;

@@ -434,9 +434,14 @@ function renderPlaylists() {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     // Render Active Group (Column Layout)
+    // NOTE: gridTemplateRows must be set explicitly so that grid-auto-flow: column
+    // knows how many rows to fill before wrapping to the next column.
+    // This ensures playlists are alphabetically sorted TOP-TO-BOTTOM within each column.
     if (activePlaylists.length > 0) {
       const activeGroup = document.createElement("div");
       activeGroup.className = "active-group";
+      const activeRowCount = Math.ceil(activePlaylists.length / 3);
+      activeGroup.style.gridTemplateRows = `repeat(${activeRowCount}, 1fr)`;
       activePlaylists.forEach((p) => activeGroup.appendChild(createItem(p)));
       grid.appendChild(activeGroup);
     }
@@ -449,6 +454,9 @@ function renderPlaylists() {
     }
 
     // Render Inactive Group (Grid Layout - fills remaining space)
+    // NOTE: gridTemplateRows must be set explicitly so that grid-auto-flow: column
+    // knows how many rows to fill before wrapping to the next column.
+    // This ensures playlists are alphabetically sorted TOP-TO-BOTTOM within each column.
     if (inactivePlaylists.length > 0) {
       const inactiveGroup = document.createElement("div");
       inactiveGroup.className = "inactive-group";
@@ -476,8 +484,8 @@ async function togglePlaylist(playlist) {
     activePlaylistsMap.delete(playlist.id);
   }
 
-  // Copy Spotify Playlist Name to Clipboard (on Add OR Remove)
-  if (playlist.spotify_name) {
+  // Copy Spotify Playlist Name to Clipboard (on Add only)
+  if (action === "add" && playlist.spotify_name) {
     navigator.clipboard.writeText(playlist.spotify_name).catch((err) => {
       console.error("Failed to copy text: ", err);
     });
